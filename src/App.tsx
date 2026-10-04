@@ -130,12 +130,14 @@ export default function App() {
       />
 
       <main className="flex-1 w-full max-w-full overflow-x-hidden">
-        {/* Hero Section with Quick Button to Form at the very top */}
+        {/* Hero Section with Dynamic Members Showcase and Quick Buttons */}
         <Hero
           userSession={userSession}
           applicant={currentApplicant}
+          members={clanMembers}
           onGoToForm={() => handleScrollToSection('reclutamiento')}
           onOpenLogin={() => setIsApplicantPortalOpen(true)}
+          onViewMembers={() => handleScrollToSection('miembros')}
         />
 
         {/* Requirements & Spartan Tag Generator */}
