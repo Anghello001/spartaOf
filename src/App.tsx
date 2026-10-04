@@ -78,18 +78,31 @@ export default function App() {
     setIsStaffDashboardOpen(true);
   };
 
+  const refreshMembersAndApplicants = () => {
+    fetchPublicClanMembers()
+      .then((res) => {
+        if (res.success && res.members) {
+          setClanMembers(res.members);
+        } else {
+          setClanMembers(getClanMembers());
+        }
+      })
+      .catch(() => {
+        setClanMembers(getClanMembers());
+      });
+    setApplicantsList(getApplicants());
+  };
+
   const handleCloseStaffDashboard = () => {
     setIsStaffDashboardOpen(false);
-    setClanMembers(getClanMembers());
-    setApplicantsList(getApplicants());
+    refreshMembersAndApplicants();
   };
 
   const handleLogoutStaff = () => {
     setStaffAuthenticated(false);
     setIsStaff(false);
     setIsStaffDashboardOpen(false);
-    setClanMembers(getClanMembers());
-    setApplicantsList(getApplicants());
+    refreshMembersAndApplicants();
   };
 
   // If Staff Dashboard is currently open, show full dashboard screen

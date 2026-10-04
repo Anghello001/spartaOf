@@ -146,20 +146,47 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onClose, onLogou
 
   const handleStatusChange = async (id: string, newStatus: ApplicantStatus) => {
     if (newStatus === 'aceptado') {
+      const targetApplicant = applicants.find((a) => a.id === id);
+      let newClanMemberObj: ClanMember | null = null;
+
       // 1. Enviar aceptación al backend de Render: se traslada a miembros y SE ELIMINA de solicitudes
       try {
         const res = await acceptRecruitBackend(id, leaderPassword);
         if (res.success && res.member) {
-          setClanMembers((prev) => [
-            res.member,
-            ...prev.filter((m) => m.gameId !== res.member.gameId),
-          ]);
+          newClanMemberObj = res.member;
         }
       } catch (err) {
         console.warn('Backend accept info:', err);
       }
 
-      // 2. REGLA: Al aceptar a alguien en el clan su solicitud YA NO SE VA A REFLEJAR
+      // Si el backend no respondió, construir el miembro con los datos del postulante
+      if (!newClanMemberObj && targetApplicant) {
+        const cleanNick = targetApplicant.nickname.startsWith('⚡SPARTA・')
+          ? targetApplicant.nickname
+          : `⚡SPARTA・${targetApplicant.nickname}`;
+        newClanMemberObj = {
+          id: `sparta-mbr-${Date.now()}`,
+          gameId: targetApplicant.gameId,
+          nickname: cleanNick,
+          phone: targetApplicant.phone,
+          rank: 'Miembro',
+          role: targetApplicant.role as any,
+          region: targetApplicant.region as any,
+          level: targetApplicant.level,
+          joinedAt: new Date().toISOString(),
+        };
+      }
+
+      if (newClanMemberObj) {
+        // Guardar explícitamente en el almacenamiento del cliente
+        saveClanMember(newClanMemberObj);
+        setClanMembers((prev) => [
+          newClanMemberObj!,
+          ...prev.filter((m) => m.gameId !== newClanMemberObj!.gameId),
+        ]);
+      }
+
+      // 2. REGLA: Al aceptar a alguien en el clan su solicitud YA NO SE VA A REFLEJAR en peticiones
       deleteApplicant(id);
       setApplicants((prev) => prev.filter((a) => a.id !== id));
       refreshList();

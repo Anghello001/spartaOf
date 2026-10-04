@@ -436,6 +436,7 @@ app.post("/api/lideres/cambiar-estado/:id", async (req, res) => {
   res.status(200).json({ success: true, applicant });
 });
 app.get("/api/miembros-publicos", (req, res) => {
+  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
   res.status(200).json({
     success: true,
     total: serverClanMembersStore.length,
@@ -444,21 +445,28 @@ app.get("/api/miembros-publicos", (req, res) => {
 });
 app.post("/api/consultar-estado", (req, res) => {
   const { phone, gameId } = req.body;
-  const cleanPhone = (phone || "").toString().trim().replace(/[\s-]/g, "");
-  const cleanGameId = (gameId || "").toString().trim().replace(/\D/g, "");
-  if (!cleanPhone || !cleanGameId) {
+  const inputPhoneDigits = (phone || "").toString().trim().replace(/\D/g, "");
+  const inputGameIdDigits = (gameId || "").toString().trim().replace(/\D/g, "");
+  if (!inputGameIdDigits && !inputPhoneDigits) {
     res.status(400).json({
       success: false,
-      error: "Debes proporcionar tu n\xFAmero de celular y tu ID de Free Fire."
+      error: "Debes proporcionar tu n\xFAmero de celular o tu ID de Free Fire."
     });
     return;
   }
-  const member = serverClanMembersStore.find((m) => {
-    const mPhone = m.phone.replace(/[\s-]/g, "");
-    const phoneMatch = mPhone === cleanPhone || mPhone.endsWith(cleanPhone) || cleanPhone.endsWith(mPhone);
-    const idMatch = m.gameId === cleanGameId;
-    return phoneMatch && idMatch;
-  });
+  const isMatch = (itemPhone, itemGameId) => {
+    const itemP = (itemPhone || "").replace(/\D/g, "");
+    const itemG = (itemGameId || "").replace(/\D/g, "");
+    const gameIdMatches = Boolean(inputGameIdDigits && itemG === inputGameIdDigits);
+    const phoneMatches = Boolean(
+      inputPhoneDigits && itemP && (itemP === inputPhoneDigits || itemP.endsWith(inputPhoneDigits) || inputPhoneDigits.endsWith(itemP) || inputPhoneDigits.length >= 7 && itemP.slice(-7) === inputPhoneDigits.slice(-7))
+    );
+    if (inputGameIdDigits && inputPhoneDigits) {
+      return gameIdMatches || phoneMatches;
+    }
+    return gameIdMatches || phoneMatches;
+  };
+  const member = serverClanMembersStore.find((m) => isMatch(m.phone, m.gameId));
   if (member) {
     res.status(200).json({
       success: true,
@@ -481,12 +489,7 @@ app.post("/api/consultar-estado", (req, res) => {
     });
     return;
   }
-  const applicant = serverApplicantsStore.find((a) => {
-    const aPhone = a.phone.replace(/[\s-]/g, "");
-    const phoneMatch = aPhone === cleanPhone || aPhone.endsWith(cleanPhone) || cleanPhone.endsWith(aPhone);
-    const idMatch = a.gameId === cleanGameId;
-    return phoneMatch && idMatch;
-  });
+  const applicant = serverApplicantsStore.find((a) => isMatch(a.phone, a.gameId));
   if (applicant) {
     res.status(200).json({
       success: true,

@@ -23,23 +23,46 @@ export function getClanMembers(): ClanMember[] {
 }
 
 export function saveClanMember(
-  data: Omit<ClanMember, 'id' | 'joinedAt'>
+  data: Partial<ClanMember> & { gameId: string; nickname: string; phone: string }
 ): ClanMember {
   const members = getClanMembers();
   const cleanGameId = data.gameId.trim().replace(/\D/g, '');
   const cleanPhone = data.phone.trim().replace(/[\s-]/g, '');
 
-  const newMember: ClanMember = {
-    ...data,
-    id: `mbr-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`,
+  const existingIdx = members.findIndex(
+    (m) => m.gameId.trim().replace(/\D/g, '') === cleanGameId
+  );
+
+  const memberObj: ClanMember = {
+    id: data.id || `mbr-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`,
     gameId: cleanGameId,
+    nickname: data.nickname,
     phone: cleanPhone,
-    joinedAt: new Date().toISOString(),
+    rank: data.rank || 'Miembro',
+    role: data.role || 'Rusher',
+    region: data.region || 'EEUU',
+    level: data.level || 65,
+    joinedAt: data.joinedAt || new Date().toISOString(),
   };
 
-  members.unshift(newMember);
+  if (existingIdx >= 0) {
+    members[existingIdx] = { ...members[existingIdx], ...memberObj };
+  } else {
+    members.unshift(memberObj);
+  }
+
   localStorage.setItem(CLAN_MEMBERS_STORAGE_KEY, JSON.stringify(members));
-  return newMember;
+  return memberObj;
+}
+
+export function saveClanMembersBulk(newMembers: ClanMember[]): void {
+  try {
+    if (Array.isArray(newMembers)) {
+      localStorage.setItem(CLAN_MEMBERS_STORAGE_KEY, JSON.stringify(newMembers));
+    }
+  } catch (err) {
+    console.error('Error saving members in bulk:', err);
+  }
 }
 
 export function updateClanMemberRank(id: string, newRank: ClanRank): void {
