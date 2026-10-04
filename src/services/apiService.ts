@@ -386,6 +386,75 @@ export async function cambiarRangoBackend(
   }
 }
 
+// 10. Guardar y Sincronizar Claves API de Gameskinbo en el Servidor (Para todos los dispositivos)
+export async function saveApiKeysBackend(
+  primaryKey: string,
+  backupKey: string,
+  password: string,
+  endpoint?: string
+): Promise<{ success: boolean; mensaje?: string; error?: string }> {
+  const backendUrl = getBackendUrl();
+  const targetEndpoint = backendUrl ? `${backendUrl}/api/lideres/guardar-api-keys` : '/api/lideres/guardar-api-keys';
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+    const res = await fetch(targetEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-LEADER-PASSWORD': password,
+      },
+      body: JSON.stringify({ primaryKey, backupKey, endpoint, password }),
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeoutId));
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return { success: false, error: err.error || 'Error al guardar claves en el servidor.' };
+    }
+
+    const data = await res.json();
+    return { success: true, mensaje: data.mensaje };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+// 11. Obtener Claves API de Gameskinbo del Servidor
+export async function fetchApiKeysBackend(
+  password: string
+): Promise<{ success: boolean; apiConfig?: { primaryKey: string; backupKey: string; endpoint: string }; error?: string }> {
+  const backendUrl = getBackendUrl();
+  const targetEndpoint = backendUrl ? `${backendUrl}/api/lideres/obtener-api-keys` : '/api/lideres/obtener-api-keys';
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+    const res = await fetch(targetEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-LEADER-PASSWORD': password,
+      },
+      body: JSON.stringify({ password }),
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeoutId));
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return { success: false, error: err.error || 'Error al obtener claves del servidor.' };
+    }
+
+    const data = await res.json();
+    return { success: true, apiConfig: data.apiConfig };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
 /**
  * Comprueba el estado del servidor en Render
  */

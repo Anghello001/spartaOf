@@ -56,6 +56,7 @@ import {
   changeRecruitStatusBackend,
   agregarMiembroBackend,
   cambiarRangoBackend,
+  saveApiKeysBackend,
 } from '../services/apiService';
 import { GameskinboModal } from './GameskinboModal';
 
@@ -136,6 +137,8 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onClose, onLogou
     e.preventDefault();
     saveGameskinboPrimaryApiKey(primaryKey);
     saveGameskinboBackupApiKey(backupKey);
+    // Sincronizar en el servidor y MongoDB para todos los dispositivos
+    saveApiKeysBackend(primaryKey, backupKey, leaderPassword).catch(() => {});
     setKeySaved(true);
     setIsEditingKey(false);
     setTimeout(() => setKeySaved(false), 2500);
@@ -191,6 +194,17 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onClose, onLogou
         }
         if (res.miembros && res.miembros.length > 0) {
           setClanMembers(res.miembros);
+        }
+        if ((res as any).apiConfig) {
+          const cfg = (res as any).apiConfig;
+          if (cfg.primaryKey && !primaryKey) {
+            setPrimaryKey(cfg.primaryKey);
+            saveGameskinboPrimaryApiKey(cfg.primaryKey);
+          }
+          if (cfg.backupKey && !backupKey) {
+            setBackupKey(cfg.backupKey);
+            saveGameskinboBackupApiKey(cfg.backupKey);
+          }
         }
         setServerSyncMessage('¡Solicitudes cargadas con éxito desde el servidor de Render!');
         setTimeout(() => setServerSyncMessage(null), 4000);
