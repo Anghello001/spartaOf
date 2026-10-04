@@ -190,14 +190,14 @@ export const ClanRequirements: React.FC = () => {
               {tagVariations.map((tag, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between bg-neutral-950/80 border border-neutral-800 rounded-xl px-4 py-2.5 hover:border-amber-500/40 transition-colors"
+                  className="flex items-center justify-between gap-2 bg-neutral-950/80 border border-neutral-800 rounded-xl px-3 sm:px-4 py-2.5 hover:border-amber-500/40 transition-colors"
                 >
-                  <span className="font-mono text-sm sm:text-base font-semibold text-amber-300 tracking-wide select-all">
+                  <span className="font-mono text-xs sm:text-base font-semibold text-amber-300 tracking-wide select-all truncate">
                     {tag}
                   </span>
                   <button
                     onClick={() => handleCopyTag(tag, idx)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-tactical font-semibold uppercase tracking-wider bg-neutral-900 hover:bg-amber-500 hover:text-black text-neutral-200 border border-neutral-700 rounded-lg transition-all cursor-pointer"
+                    className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-tactical font-semibold uppercase tracking-wider bg-neutral-900 hover:bg-amber-500 hover:text-black text-neutral-200 border border-neutral-700 rounded-lg transition-all cursor-pointer shrink-0"
                   >
                     {copiedIndex === idx ? (
                       <>

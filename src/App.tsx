@@ -96,7 +96,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col font-sans overflow-x-hidden w-full max-w-full">
       {/* Top Bar Contract (1 row, 3 zones) */}
       <Navbar
         userSession={userSession}
@@ -109,7 +109,7 @@ export default function App() {
         onScrollToSection={handleScrollToSection}
       />
 
-      <main className="flex-1">
+      <main className="flex-1 w-full max-w-full overflow-x-hidden">
         {/* Hero Section with Quick Button to Form at the very top */}
         <Hero
           userSession={userSession}

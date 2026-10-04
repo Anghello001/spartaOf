@@ -7,10 +7,27 @@
     --font-body: 'Plus Jakarta Sans', sans-serif;
   }
 
-  body {
+  html, body {
     font-family: var(--font-body);
     background-color: #0a0a0c;
     color: #e5e5e5;
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Prevent iOS Safari 16px auto-zoom glitch */
+  @media (max-width: 640px) {
+    input, select, textarea {
+      font-size: 16px !important;
+    }
+  }
+
+  /* Fast responsive touch on buttons */
+  button, a {
+    touch-action: manipulation;
   }
 }
 

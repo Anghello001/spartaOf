@@ -76,8 +76,8 @@ export const GameskinboModal: React.FC<GameskinboModalProps> = ({
   const hasAnyKey = Boolean(getGameskinboPrimaryApiKey() || getGameskinboBackupApiKey());
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-      <div className="bg-neutral-950 border border-amber-500/40 rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-2xl relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in overflow-y-auto">
+      <div className="bg-neutral-950 border border-amber-500/40 rounded-2xl w-full max-w-2xl max-h-[92dvh] overflow-y-auto shadow-2xl relative my-auto">
         {/* Header */}
         <div className="sticky top-0 bg-neutral-950/95 border-b border-neutral-800 px-6 py-4 flex items-center justify-between z-10 backdrop-blur-sm">
           <div className="flex items-center gap-3">

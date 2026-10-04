@@ -115,32 +115,32 @@ export const RecruitmentForm: React.FC<RecruitmentFormProps> = ({ onSuccess, onO
   };
 
   return (
-    <section id="reclutamiento" className="py-20 bg-neutral-900/30 border-t border-neutral-900 relative">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="reclutamiento" className="py-12 sm:py-20 bg-neutral-900/30 border-t border-neutral-900 relative">
+      <div className="max-w-4xl mx-auto px-3.5 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-8 sm:mb-12">
           <div className="inline-flex items-center gap-2 text-xs font-tactical uppercase tracking-widest text-amber-500 mb-2">
             <Flame className="w-3.5 h-3.5 text-amber-500" />
             <span>ALISTAMIENTO ESPARTANO</span>
           </div>
-          <h2 className="font-spartan font-bold text-3xl sm:text-4xl text-white tracking-wide uppercase mb-3">
+          <h2 className="font-spartan font-bold text-2xl sm:text-4xl text-white tracking-wide uppercase mb-3">
             FORMULARIO DE RECLUTAMIENTO
           </h2>
-          <p className="text-neutral-400 text-sm max-w-xl mx-auto">
+          <p className="text-neutral-400 text-xs sm:text-sm max-w-xl mx-auto">
             Completa tus datos con precisión. Tu <strong className="text-amber-400">Número de WhatsApp</strong> y tu{' '}
             <strong className="text-amber-400">ID de Free Fire</strong> serán tu usuario y contraseña para ingresar a ver tu estado.
           </p>
         </div>
 
         {submittedApplicant ? (
-          <div className="bg-gradient-to-b from-neutral-900 to-neutral-950 border border-emerald-500/40 rounded-2xl p-8 text-center shadow-2xl animate-fade-in">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 mx-auto mb-4">
-              <CheckCircle2 className="w-9 h-9" />
+          <div className="bg-gradient-to-b from-neutral-900 to-neutral-950 border border-emerald-500/40 rounded-2xl p-5 sm:p-8 text-center shadow-2xl animate-fade-in">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 mx-auto mb-4">
+              <CheckCircle2 className="w-8 h-8 sm:w-9 sm:h-9" />
             </div>
-            <h3 className="font-spartan font-bold text-2xl text-white uppercase mb-2">
+            <h3 className="font-spartan font-bold text-xl sm:text-2xl text-white uppercase mb-2">
               ¡POSTULACIÓN REGISTRADA, GUERRERO!
             </h3>
-            <p className="text-sm text-neutral-300 max-w-lg mx-auto mb-6">
+            <p className="text-xs sm:text-sm text-neutral-300 max-w-lg mx-auto mb-6">
               Tu postulación para <span className="text-amber-400 font-semibold">{submittedApplicant.nickname}</span> ha sido enviada al comando del clan OF SPARTA.
             </p>
 
@@ -165,14 +165,14 @@ export const RecruitmentForm: React.FC<RecruitmentFormProps> = ({ onSuccess, onO
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <button
                 onClick={() => setSubmittedApplicant(null)}
-                className="px-6 py-2.5 rounded-lg text-xs font-tactical uppercase tracking-wider bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
+                className="w-full sm:w-auto px-6 py-2.5 rounded-lg text-xs font-tactical uppercase tracking-wider bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
               >
                 Enviar otra solicitud
               </button>
             </div>
           </div>
         ) : (
-          <div className="bg-neutral-950/90 border border-amber-500/30 rounded-2xl p-6 sm:p-10 shadow-2xl backdrop-blur-md">
+          <div className="bg-neutral-950/90 border border-amber-500/30 rounded-2xl p-4 sm:p-8 lg:p-10 shadow-2xl backdrop-blur-md">
             {errorMsg && (
               <div className="mb-6 p-4 rounded-xl bg-red-950/50 border border-red-500/50 text-red-300 text-xs flex items-center gap-3">
                 <AlertCircle className="w-5 h-5 shrink-0 text-red-400" />

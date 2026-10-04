@@ -57,34 +57,34 @@ export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({ isOpen, onClos
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-      <div className="bg-neutral-950 border border-red-500/40 rounded-2xl w-full max-w-md shadow-2xl relative overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in overflow-y-auto">
+      <div className="bg-neutral-950 border border-red-500/40 rounded-2xl w-full max-w-md max-h-[92dvh] overflow-y-auto shadow-2xl relative my-auto">
         {/* Top Accent Strip */}
         <div className="h-1.5 w-full bg-gradient-to-r from-red-600 via-amber-500 to-red-600" />
 
         {/* Modal Header */}
-        <div className="px-6 pt-6 pb-4 flex items-center justify-between border-b border-neutral-800">
+        <div className="px-4 sm:px-6 pt-5 sm:pt-6 pb-4 flex items-center justify-between border-b border-neutral-800">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-red-950/70 border border-red-500/40 flex items-center justify-center text-red-400">
+            <div className="w-8 h-8 rounded-lg bg-red-950/70 border border-red-500/40 flex items-center justify-center text-red-400 shrink-0">
               <Lock className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-spartan font-bold text-base text-white uppercase tracking-wider">
+              <h3 className="font-spartan font-bold text-sm sm:text-base text-white uppercase tracking-wider">
                 PANEL DE LÍDERES & STAFF 🔐
               </h3>
-              <p className="text-[11px] text-neutral-400">Comandancia Oficial · Clan OF SPARTA</p>
+              <p className="text-[10px] sm:text-[11px] text-neutral-400">Comandancia Oficial · Clan OF SPARTA</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors"
+            className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Form Body */}
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           <div className="mb-5 text-center">
             <p className="text-xs text-neutral-300 leading-relaxed">
               Módulo restringido para ver la lista de registrados, auditar con Gameskinbo y{' '}

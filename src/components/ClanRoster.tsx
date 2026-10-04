@@ -77,9 +77,9 @@ export const ClanRoster: React.FC<ClanRosterProps> = ({ members }) => {
         </div>
 
         {/* Minimalist Controls & Search Bar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
-          {/* Quick Filters */}
-          <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 mb-8">
+          {/* Quick Filters with native mobile horizontal scroll */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 sm:pb-0 scrollbar-none no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
             {[
               { id: 'todos', label: 'Todos' },
               { id: 'liderazgo', label: '👑 Liderazgo' },
@@ -90,7 +90,7 @@ export const ClanRoster: React.FC<ClanRosterProps> = ({ members }) => {
               <button
                 key={f.id}
                 onClick={() => setRankFilter(f.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-tactical uppercase tracking-wider transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-tactical uppercase tracking-wider transition-all cursor-pointer shrink-0 whitespace-nowrap ${
                   rankFilter === f.id
                     ? 'bg-amber-500 text-black font-bold shadow-md'
                     : 'bg-neutral-900/90 text-neutral-400 hover:text-white border border-neutral-800'
@@ -102,7 +102,7 @@ export const ClanRoster: React.FC<ClanRosterProps> = ({ members }) => {
           </div>
 
           {/* Search box & counter */}
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="flex items-center gap-2.5 w-full sm:w-auto">
             <div className="relative flex-1 sm:w-64">
               <Search className="w-3.5 h-3.5 text-neutral-500 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -110,10 +110,10 @@ export const ClanRoster: React.FC<ClanRosterProps> = ({ members }) => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar por Nick o ID..."
-                className="w-full bg-neutral-900/80 border border-neutral-800 text-neutral-200 text-xs pl-8 pr-3 py-2 rounded-xl outline-none focus:border-amber-500 font-mono transition-colors"
+                className="w-full bg-neutral-900/80 border border-neutral-800 text-neutral-200 text-xs sm:text-xs pl-8 pr-3 py-2.5 sm:py-2 rounded-xl outline-none focus:border-amber-500 font-mono transition-colors"
               />
             </div>
-            <span className="text-xs font-tactical text-neutral-400 whitespace-nowrap bg-neutral-900 px-3 py-2 rounded-xl border border-neutral-800">
+            <span className="text-xs font-tactical text-neutral-400 whitespace-nowrap bg-neutral-900 px-3 py-2 rounded-xl border border-neutral-800 shrink-0">
               <strong className="text-amber-400">{filteredMembers.length}</strong> / {members.length}
             </span>
           </div>

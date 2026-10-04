@@ -180,31 +180,31 @@ export const ApplicantPortalModal: React.FC<ApplicantPortalModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="bg-neutral-950 border border-amber-500/30 rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in overflow-y-auto">
+      <div className="bg-neutral-950 border border-amber-500/30 rounded-2xl w-full max-w-xl max-h-[92dvh] overflow-y-auto shadow-2xl relative my-auto">
         {/* Modal Header */}
-        <div className="sticky top-0 bg-neutral-950/95 border-b border-neutral-800 px-6 py-4 flex items-center justify-between z-10 backdrop-blur-sm">
-          <div className="flex items-center gap-2.5">
-            <Shield className="w-5 h-5 text-amber-500" />
+        <div className="sticky top-0 bg-neutral-950/95 border-b border-neutral-800 px-4 sm:px-6 py-3.5 sm:py-4 flex items-center justify-between z-10 backdrop-blur-sm">
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            <Shield className="w-5 h-5 text-amber-500 shrink-0" />
             <div>
-              <h3 className="font-spartan font-bold text-base text-white uppercase tracking-wider">
+              <h3 className="font-spartan font-bold text-sm sm:text-base text-white uppercase tracking-wider">
                 PORTAL DEL RECLUTA
               </h3>
-              <p className="text-[11px] text-neutral-400">
+              <p className="text-[10px] sm:text-[11px] text-neutral-400">
                 Consulta el estado de tu postulación a OF SPARTA
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors"
+            className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Content */}
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {currentApplicant ? (
             /* Logged In View */
             <div className="space-y-6">

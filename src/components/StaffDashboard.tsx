@@ -339,65 +339,68 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onClose, onLogou
     <div className="min-h-screen bg-neutral-950 text-neutral-100 pb-20">
       {/* Top Banner / Staff Header */}
       <header className="sticky top-0 z-30 bg-neutral-950/95 border-b border-red-500/30 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-red-950/80 border border-red-500/50 flex items-center justify-center text-red-400">
-              <Shield className="w-6 h-6" />
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 min-h-[4.5rem] py-2.5 flex items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-red-950/80 border border-red-500/50 flex items-center justify-center text-red-400 shrink-0">
+              <Shield className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-spartan font-black text-lg text-white uppercase tracking-wider">
+                <span className="font-spartan font-black text-sm sm:text-lg text-white uppercase tracking-wider">
                   COMANDANCIA DE STAFF
                 </span>
-                <span className="text-[10px] font-tactical px-2 py-0.5 rounded bg-red-950 text-red-400 border border-red-500/40 uppercase tracking-widest font-bold">
-                  MODERACIÓN ACTIVA
+                <span className="text-[9px] sm:text-[10px] font-tactical px-2 py-0.5 rounded bg-red-950 text-red-400 border border-red-500/40 uppercase tracking-widest font-bold">
+                  MODERACIÓN
                 </span>
               </div>
-              <p className="text-xs text-neutral-400">
+              <p className="text-[11px] sm:text-xs text-neutral-400 hidden sm:block">
                 Gestión de postulaciones y miembros · Clan OF SPARTA
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1.5 sm:gap-2.5">
             <button
               onClick={() => setShowDeployModal(true)}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-700 hover:border-blue-500/50 text-xs font-tactical uppercase tracking-wider text-neutral-200 transition-colors cursor-pointer"
+              className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-700 hover:border-blue-500/50 text-xs font-tactical uppercase tracking-wider text-neutral-200 transition-colors cursor-pointer"
             >
-              <span>🚀 Despliegue (Render / Vercel)</span>
+              <span>🚀 Despliegue</span>
             </button>
 
             {activeTab === 'miembros' ? (
               <button
                 onClick={() => setShowAddMemberModal(true)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-xs font-tactical font-bold uppercase tracking-wider transition-all shadow-md cursor-pointer"
+                className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-2 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-xs font-tactical font-bold uppercase tracking-wider transition-all shadow-md cursor-pointer shrink-0"
               >
-                <UserPlus className="w-4 h-4" />
-                <span>Añadir Miembro Manual</span>
+                <UserPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Añadir Miembro</span>
+                <span className="sm:hidden">Añadir</span>
               </button>
             ) : (
               <button
                 onClick={() => setShowAddModal(true)}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-700 hover:border-amber-500/40 text-xs font-tactical uppercase tracking-wider text-neutral-200 transition-colors cursor-pointer"
+                className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-700 hover:border-amber-500/40 text-xs font-tactical uppercase tracking-wider text-neutral-200 transition-colors cursor-pointer shrink-0"
               >
-                <Plus className="w-4 h-4 text-amber-400" />
-                <span>Petición Manual</span>
+                <Plus className="w-3.5 h-3.5 text-amber-400" />
+                <span className="hidden sm:inline">Petición Manual</span>
+                <span className="sm:hidden">Manual</span>
               </button>
             )}
 
             <button
               onClick={onClose}
-              className="px-3 py-2 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-xs font-tactical uppercase tracking-wider text-neutral-300 border border-neutral-700 transition-colors"
+              className="px-2.5 sm:px-3 py-2 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-xs font-tactical uppercase tracking-wider text-neutral-300 border border-neutral-700 transition-colors cursor-pointer shrink-0"
             >
-              Volver a la Web
+              <span className="hidden sm:inline">Volver a la Web</span>
+              <span className="sm:hidden">Web</span>
             </button>
 
             <button
               onClick={onLogoutStaff}
               title="Cerrar sesión de Staff"
-              className="p-2 text-neutral-400 hover:text-red-400 rounded-lg hover:bg-red-950/50 transition-colors"
+              className="p-2 text-neutral-400 hover:text-red-400 rounded-lg hover:bg-red-950/50 transition-colors cursor-pointer shrink-0"
             >
-              <LogOut className="w-5 h-5" />
+              <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
@@ -568,10 +571,10 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onClose, onLogou
         </section>
 
         {/* PRIMARY STAFF NAVIGATION TABS: Peticiones vs Miembros del Clan */}
-        <div className="flex items-center gap-2 border-b border-neutral-800 pb-2">
+        <div className="flex items-center gap-2 border-b border-neutral-800 pb-2 overflow-x-auto no-scrollbar scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
           <button
             onClick={() => setActiveTab('peticiones')}
-            className={`flex items-center gap-2.5 px-5 py-3 rounded-xl font-tactical font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-xl font-tactical font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeTab === 'peticiones'
                 ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20'
                 : 'bg-neutral-900 text-neutral-400 hover:text-white border border-neutral-800'
@@ -590,7 +593,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onClose, onLogou
 
           <button
             onClick={() => setActiveTab('miembros')}
-            className={`flex items-center gap-2.5 px-5 py-3 rounded-xl font-tactical font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-xl font-tactical font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeTab === 'miembros'
                 ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20'
                 : 'bg-neutral-900 text-neutral-400 hover:text-white border border-neutral-800'
@@ -1044,18 +1047,18 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onClose, onLogou
 
       {/* MODAL: AÑADIR MIEMBRO MANUALMENTE (ID Y NÚMEROS) */}
       {showAddMemberModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-          <div className="bg-neutral-950 border border-amber-500/40 rounded-2xl w-full max-w-lg p-6 space-y-5 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in overflow-y-auto">
+          <div className="bg-neutral-950 border border-amber-500/40 rounded-2xl w-full max-w-lg max-h-[92dvh] overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-5 shadow-2xl my-auto">
             <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
               <div className="flex items-center gap-2">
                 <UserPlus className="w-5 h-5 text-amber-500" />
-                <h4 className="font-spartan font-bold text-base text-white uppercase tracking-wider">
+                <h4 className="font-spartan font-bold text-sm sm:text-base text-white uppercase tracking-wider">
                   AÑADIR MIEMBRO MANUAL AL CLAN
                 </h4>
               </div>
               <button
                 onClick={() => setShowAddMemberModal(false)}
-                className="text-neutral-400 hover:text-white p-1"
+                className="text-neutral-400 hover:text-white p-1 cursor-pointer"
               >
                 ✕
               </button>
@@ -1207,8 +1210,8 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onClose, onLogou
 
       {/* CONFIRMATION MODAL: BOTAR / EXPULSAR MIEMBRO DEL CLAN */}
       {memberToKick && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-          <div className="bg-neutral-950 border border-red-500/50 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in overflow-y-auto">
+          <div className="bg-neutral-950 border border-red-500/50 rounded-2xl w-full max-w-md max-h-[92dvh] overflow-y-auto p-4 sm:p-6 space-y-4 shadow-2xl my-auto">
             <div className="flex items-center gap-3 text-red-400">
               <AlertTriangle className="w-6 h-6 shrink-0" />
               <h4 className="font-spartan font-bold text-base text-white uppercase">
@@ -1261,18 +1264,18 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onClose, onLogou
 
       {/* Deployment Guide Modal (Render & Vercel/Netlify) */}
       {showDeployModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-          <div className="bg-neutral-950 border border-neutral-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 sm:p-8 space-y-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in overflow-y-auto">
+          <div className="bg-neutral-950 border border-neutral-700 rounded-2xl w-full max-w-2xl max-h-[92dvh] overflow-y-auto p-4 sm:p-8 space-y-5 my-auto">
             <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
               <div className="flex items-center gap-2">
                 <span className="text-xl">🚀</span>
-                <h4 className="font-spartan font-bold text-lg text-white uppercase">
-                  COMPATIBILIDAD DE DESPLIEGUE EN PRODUCCIÓN
+                <h4 className="font-spartan font-bold text-base sm:text-lg text-white uppercase">
+                  DESPLIEGUE EN PRODUCCIÓN
                 </h4>
               </div>
               <button
                 onClick={() => setShowDeployModal(false)}
-                className="text-neutral-400 hover:text-white p-1"
+                className="text-neutral-400 hover:text-white p-1 cursor-pointer"
               >
                 ✕
               </button>
@@ -1297,7 +1300,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onClose, onLogou
                 <ul className="text-xs text-neutral-300 space-y-1 list-disc list-inside">
                   <li><strong>Archivo de arranque:</strong> <code className="text-amber-300 font-mono">server.ts</code> con Express y soporte de variables de entorno.</li>
                   <li><strong>Comando de Build:</strong> <code className="text-amber-300 font-mono">npm install && npm run build</code></li>
-                  <li><strong>Comando de Start:</strong> <code className="text-amber-300 font-mono">npm run start</code> (ejecuta <code className="text-amber-300 font-mono">tsx server.ts</code>)</li>
+                  <li><strong>Comando de Start:</strong> <code className="text-amber-300 font-mono">npm start</code> (o <code className="text-amber-300 font-mono">node index.js</code>)</li>
                   <li><strong>Endpoint Keep-Alive:</strong> <code className="text-amber-300 font-mono">/api/health</code> para evitar que se duerma el plan gratis.</li>
                 </ul>
               </div>
@@ -1332,8 +1335,8 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onClose, onLogou
 
       {/* Manual Recruit Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-neutral-950 border border-neutral-700 rounded-xl w-full max-w-md p-6 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-neutral-950 border border-neutral-700 rounded-xl w-full max-w-md max-h-[92dvh] overflow-y-auto p-4 sm:p-6 space-y-4 my-auto">
             <h4 className="font-tactical font-bold text-base text-white uppercase">
               Registrar Petición de Recluta Manual
             </h4>

@@ -45,18 +45,18 @@ export const Hero: React.FC<HeroProps> = ({
 
       <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8">
         {/* Editorial Eyebrow */}
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-neutral-900/90 border border-amber-500/40 text-xs font-tactical font-semibold tracking-widest uppercase text-amber-400 backdrop-blur-sm shadow-lg">
-          <Shield className="w-3.5 h-3.5 text-amber-500" />
-          <span>CLAN COMPETITIVO FREE FIRE · CONVOCATORIA OFICIAL 2026</span>
+        <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 rounded-full bg-neutral-900/90 border border-amber-500/40 text-[10px] sm:text-xs font-tactical font-semibold tracking-wider sm:tracking-widest uppercase text-amber-400 backdrop-blur-sm shadow-lg max-w-full">
+          <Shield className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-500 shrink-0" />
+          <span className="truncate">CONVOCATORIA OFICIAL 2026 · CLAN FREE FIRE</span>
         </div>
 
         {/* Marquee Display Title */}
-        <h1 className="font-spartan font-black text-4xl sm:text-6xl lg:text-7xl text-white tracking-wide uppercase leading-tight drop-shadow-2xl text-balance">
+        <h1 className="font-spartan font-black text-3xl sm:text-5xl lg:text-7xl text-white tracking-wide uppercase leading-tight drop-shadow-2xl text-balance">
           CLAN <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-400 to-amber-600">OF SPARTA</span>
         </h1>
 
         {/* Spartan Motto */}
-        <p className="font-tactical text-xl sm:text-3xl text-amber-400/90 font-medium tracking-wider uppercase drop-shadow max-w-3xl mx-auto">
+        <p className="font-tactical text-base sm:text-2xl lg:text-3xl text-amber-400/90 font-medium tracking-wider uppercase drop-shadow max-w-3xl mx-auto px-2">
           "¡Honor, Gloria o Muerte! En la arena solo los fuertes prevalecen."
         </p>
 
