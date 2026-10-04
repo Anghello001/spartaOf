@@ -16,6 +16,7 @@
     max-width: 100vw;
     -webkit-text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
+    touch-action: pan-x pan-y;
   }
 
   /* Prevent iOS Safari 16px auto-zoom glitch */
