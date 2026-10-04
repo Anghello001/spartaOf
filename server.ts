@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -11,6 +12,10 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 10000;
+
+// Configuración de almacenamiento persistente centralizado en el servidor
+const DATA_DIR = path.resolve(process.cwd(), 'data');
+const DATA_FILE = path.join(DATA_DIR, 'sparta_store.json');
 
 // Configuración de CORS total: permite que cualquier origen (como Vercel o el móvil de un amigo) envíe datos sin bloqueos
 app.use(
@@ -139,6 +144,50 @@ let serverClanMembersStore: ServerClanMember[] = [
   },
 ];
 
+// Funciones de sincronización persistente centralizada (sin almacenamiento local de cliente)
+function loadServerStore() {
+  try {
+    if (fs.existsSync(DATA_FILE)) {
+      const content = fs.readFileSync(DATA_FILE, 'utf-8');
+      const data = JSON.parse(content);
+      if (Array.isArray(data.applicants)) {
+        serverApplicantsStore = data.applicants;
+      }
+      if (Array.isArray(data.members) && data.members.length > 0) {
+        serverClanMembersStore = data.members;
+      }
+      console.log(`[Storage] Base centralizada cargada: ${serverApplicantsStore.length} solicitudes, ${serverClanMembersStore.length} miembros.`);
+    }
+  } catch (err) {
+    console.warn('[Storage] Aviso: usando base en memoria:', err);
+  }
+}
+
+function saveServerStore() {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(
+      DATA_FILE,
+      JSON.stringify(
+        {
+          applicants: serverApplicantsStore,
+          members: serverClanMembersStore,
+          lastUpdated: new Date().toISOString(),
+        },
+        null,
+        2
+      ),
+      'utf-8'
+    );
+  } catch (err) {
+    console.warn('[Storage] Error al persistir datos centrales:', err);
+  }
+}
+
+loadServerStore();
+
 /**
  * Health Check Endpoint
  */
@@ -203,6 +252,7 @@ const handleBotar = async (req: Request, res: Response) => {
   const applicantIndex = serverApplicantsStore.findIndex((a) => a.id === id);
   if (applicantIndex >= 0) {
     const deleted = serverApplicantsStore.splice(applicantIndex, 1);
+    saveServerStore();
     res.status(200).json({
       success: true,
       mensaje: 'Jugador rechazado y eliminado de la lista de postulaciones.',
@@ -215,6 +265,7 @@ const handleBotar = async (req: Request, res: Response) => {
   const memberIndex = serverClanMembersStore.findIndex((m) => m.id === id);
   if (memberIndex >= 0) {
     const kicked = serverClanMembersStore.splice(memberIndex, 1);
+    saveServerStore();
     res.status(200).json({
       success: true,
       mensaje: 'Miembro botado y eliminado del clan OF SPARTA.',
@@ -250,6 +301,7 @@ app.post('/api/lideres/cambiar-rango/:id', (req: Request, res: Response) => {
     member.rank = rank;
   }
 
+  saveServerStore();
   res.status(200).json({ success: true, member });
 });
 
@@ -279,7 +331,119 @@ app.post('/api/lideres/agregar-miembro', (req: Request, res: Response) => {
   };
 
   serverClanMembersStore.unshift(newMember);
+  saveServerStore();
   res.status(200).json({ success: true, member: newMember });
+});
+
+// 6. RUTA PARA ACEPTAR A UN RECLUTA EN EL CLAN
+// REGLA CRÍTICA: Al aceptar a alguien en el clan, su solicitud YA NO SE REFLEJA (se elimina de solicitudes)
+app.post('/api/lideres/aceptar-recluta/:id', (req: Request, res: Response) => {
+  if (!isAuthorizedLeader(req)) {
+    res.status(401).json({ error: 'No tienes permiso para hacer esto.' });
+    return;
+  }
+
+  const { id } = req.params;
+  const applicantIndex = serverApplicantsStore.findIndex((a) => a.id === id);
+
+  if (applicantIndex === -1) {
+    res.status(404).json({ error: 'Solicitud de recluta no encontrada en el servidor.' });
+    return;
+  }
+
+  const applicant = serverApplicantsStore[applicantIndex];
+  const cleanNick = applicant.nickname.startsWith('⚡SPARTA・')
+    ? applicant.nickname
+    : `⚡SPARTA・${applicant.nickname}`;
+
+  // Verificar si ya existe en miembros
+  const existingMemberIndex = serverClanMembersStore.findIndex(
+    (m) => m.gameId === applicant.gameId
+  );
+
+  let member: ServerClanMember;
+  if (existingMemberIndex >= 0) {
+    member = serverClanMembersStore[existingMemberIndex];
+  } else {
+    member = {
+      id: `sparta-mbr-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      gameId: applicant.gameId,
+      nickname: cleanNick,
+      phone: applicant.phone,
+      rank: 'Miembro',
+      role: applicant.role || 'Rusher',
+      region: applicant.region || 'EEUU',
+      level: applicant.level || 65,
+      joinedAt: new Date().toISOString(),
+    };
+    serverClanMembersStore.unshift(member);
+  }
+
+  // Eliminar inmediatamente de la lista de solicitudes para que ya NO se refleje
+  serverApplicantsStore.splice(applicantIndex, 1);
+  saveServerStore();
+
+  res.status(200).json({
+    success: true,
+    mensaje: `¡${applicant.nickname} ha sido aceptado oficialmente en el Clan OF SPARTA! Su solicitud ya no se refleja en peticiones.`,
+    member,
+  });
+});
+
+// 7. RUTA PARA CAMBIAR ESTADO DE SOLICITUD (En prueba, notas, o aceptación)
+app.post('/api/lideres/cambiar-estado/:id', (req: Request, res: Response) => {
+  if (!isAuthorizedLeader(req)) {
+    res.status(401).json({ error: 'No tienes permiso para hacer esto.' });
+    return;
+  }
+
+  const { id } = req.params;
+  const { status, staffNotes } = req.body;
+
+  const applicantIndex = serverApplicantsStore.findIndex((a) => a.id === id);
+
+  if (applicantIndex === -1) {
+    res.status(404).json({ error: 'Solicitud no encontrada.' });
+    return;
+  }
+
+  // Si se cambia el estado a 'aceptado', se traslada a miembros y se remueve de solicitudes
+  if (status === 'aceptado') {
+    const applicant = serverApplicantsStore[applicantIndex];
+    const cleanNick = applicant.nickname.startsWith('⚡SPARTA・')
+      ? applicant.nickname
+      : `⚡SPARTA・${applicant.nickname}`;
+
+    const newMember: ServerClanMember = {
+      id: `sparta-mbr-${Date.now()}`,
+      gameId: applicant.gameId,
+      nickname: cleanNick,
+      phone: applicant.phone,
+      rank: 'Miembro',
+      role: applicant.role || 'Rusher',
+      region: applicant.region || 'EEUU',
+      level: applicant.level || 65,
+      joinedAt: new Date().toISOString(),
+    };
+    serverClanMembersStore.unshift(newMember);
+    serverApplicantsStore.splice(applicantIndex, 1);
+    saveServerStore();
+
+    res.status(200).json({
+      success: true,
+      mensaje: 'Recluta aceptado. La solicitud ha sido promovida a Miembro y ya no se refleja en peticiones.',
+      member: newMember,
+    });
+    return;
+  }
+
+  const applicant = serverApplicantsStore[applicantIndex];
+  if (status) applicant.status = status;
+  if (staffNotes !== undefined) applicant.staffNotes = staffNotes;
+  applicant.updatedAt = new Date().toISOString();
+
+  saveServerStore();
+  res.status(200).json({ success: true, applicant });
 });
 
 /**
@@ -287,6 +451,87 @@ app.post('/api/lideres/agregar-miembro', (req: Request, res: Response) => {
  * RUTAS PÚBLICAS: Reclutamiento, Consulta y Gameskinbo
  * ========================================================
  */
+
+// 8. RUTA PÚBLICA PARA VER LA ALINEACIÓN DEL CLAN (Para que todos los dispositivos vean los mismos miembros)
+app.get('/api/miembros-publicos', (req: Request, res: Response) => {
+  res.status(200).json({
+    success: true,
+    total: serverClanMembersStore.length,
+    members: serverClanMembersStore,
+  });
+});
+
+// 9. RUTA PÚBLICA PARA CONSULTAR ESTADO DIRECTAMENTE EN EL SERVIDOR (Sin localStorage)
+app.post('/api/consultar-estado', (req: Request, res: Response) => {
+  const { phone, gameId } = req.body;
+  const cleanPhone = (phone || '').toString().trim().replace(/[\s-]/g, '');
+  const cleanGameId = (gameId || '').toString().trim().replace(/\D/g, '');
+
+  if (!cleanPhone || !cleanGameId) {
+    res.status(400).json({
+      success: false,
+      error: 'Debes proporcionar tu número de celular y tu ID de Free Fire.',
+    });
+    return;
+  }
+
+  // 1. Verificar si ya fue aceptado como miembro oficial
+  const member = serverClanMembersStore.find((m) => {
+    const mPhone = m.phone.replace(/[\s-]/g, '');
+    const phoneMatch =
+      mPhone === cleanPhone || mPhone.endsWith(cleanPhone) || cleanPhone.endsWith(mPhone);
+    const idMatch = m.gameId === cleanGameId;
+    return phoneMatch && idMatch;
+  });
+
+  if (member) {
+    res.status(200).json({
+      success: true,
+      isMember: true,
+      status: 'aceptado',
+      member,
+      applicant: {
+        id: member.id,
+        gameId: member.gameId,
+        nickname: member.nickname,
+        phone: member.phone,
+        region: member.region,
+        role: member.role,
+        level: member.level,
+        status: 'aceptado',
+        createdAt: member.joinedAt,
+        updatedAt: member.joinedAt,
+      },
+      mensaje: '¡Eres miembro oficial del Clan OF SPARTA!',
+    });
+    return;
+  }
+
+  // 2. Verificar si está en la lista de solicitudes pendientes o en prueba
+  const applicant = serverApplicantsStore.find((a) => {
+    const aPhone = a.phone.replace(/[\s-]/g, '');
+    const phoneMatch =
+      aPhone === cleanPhone || aPhone.endsWith(cleanPhone) || cleanPhone.endsWith(aPhone);
+    const idMatch = a.gameId === cleanGameId;
+    return phoneMatch && idMatch;
+  });
+
+  if (applicant) {
+    res.status(200).json({
+      success: true,
+      isMember: false,
+      status: applicant.status,
+      applicant,
+    });
+    return;
+  }
+
+  res.status(404).json({
+    success: false,
+    error:
+      'No se encontró ninguna postulación con este número de celular e ID en el servidor. Verifica los datos o envía una solicitud nueva.',
+  });
+});
 
 // Endpoint de Reclutamiento
 app.post('/api/reclutar', async (req: Request, res: Response) => {
@@ -349,6 +594,7 @@ app.post('/api/reclutar', async (req: Request, res: Response) => {
   } else {
     serverApplicantsStore.unshift(newApplicant);
   }
+  saveServerStore();
 
   // Webhook Make.com para WhatsApp
   const webhookUrl = process.env.WHATSAPP_WEBHOOK_URL;

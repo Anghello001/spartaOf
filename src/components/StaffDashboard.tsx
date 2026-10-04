@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Shield,
   Search,
@@ -49,7 +49,14 @@ import {
   getGameskinboBackupApiKey,
   saveGameskinboBackupApiKey,
 } from '../services/gameskinboService';
-import { fetchLeaderAll, botarJugadorBackend } from '../services/apiService';
+import {
+  fetchLeaderAll,
+  botarJugadorBackend,
+  acceptRecruitBackend,
+  changeRecruitStatusBackend,
+  agregarMiembroBackend,
+  cambiarRangoBackend,
+} from '../services/apiService';
 import { GameskinboModal } from './GameskinboModal';
 
 interface StaffDashboardProps {
@@ -134,23 +141,30 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onClose, onLogou
     setTimeout(() => setKeySaved(false), 2500);
   };
 
-  const handleStatusChange = (id: string, newStatus: ApplicantStatus) => {
-    const updated = updateApplicantStatus(id, newStatus);
-    // If accepted, offer or automatically add to clan members list
-    if (newStatus === 'aceptado' && updated) {
-      const exists = clanMembers.some((m) => m.gameId === updated.gameId);
-      if (!exists) {
-        saveClanMember({
-          gameId: updated.gameId,
-          nickname: updated.nickname.startsWith('⚡SPARTA・') ? updated.nickname : `⚡SPARTA・${updated.nickname}`,
-          phone: updated.phone,
-          rank: 'Miembro',
-          role: updated.role,
-          region: updated.region,
-          level: updated.level,
-        });
+  const handleStatusChange = async (id: string, newStatus: ApplicantStatus) => {
+    if (newStatus === 'aceptado') {
+      // 1. Enviar aceptación al backend de Render: se traslada a miembros y SE ELIMINA de solicitudes
+      try {
+        const res = await acceptRecruitBackend(id, leaderPassword);
+        if (res.success && res.member) {
+          setClanMembers((prev) => [
+            res.member,
+            ...prev.filter((m) => m.gameId !== res.member.gameId),
+          ]);
+        }
+      } catch (err) {
+        console.warn('Backend accept info:', err);
       }
+
+      // 2. REGLA CRÍTICA: Al aceptar a alguien en el clan su solicitud YA NO SE VA A REFLEJAR
+      deleteApplicant(id);
+      setApplicants((prev) => prev.filter((a) => a.id !== id));
+      refreshList();
+      return;
     }
+
+    changeRecruitStatusBackend(id, newStatus, leaderPassword).catch(() => {});
+    updateApplicantStatus(id, newStatus);
     refreshList();
   };
 
@@ -171,8 +185,9 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onClose, onLogou
     try {
       const res = await fetchLeaderAll(leaderPassword);
       if (res.success) {
-        if (res.reclutas && res.reclutas.length > 0) {
-          setApplicants(res.reclutas);
+        if (res.reclutas) {
+          // Filtrar cualquier solicitud aceptada para que nunca se refleje en peticiones
+          setApplicants(res.reclutas.filter((r) => r.status !== 'aceptado'));
         }
         if (res.miembros && res.miembros.length > 0) {
           setClanMembers(res.miembros);
@@ -184,12 +199,17 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onClose, onLogou
         setTimeout(() => setServerSyncMessage(null), 5000);
       }
     } catch {
-      setServerSyncMessage('Conectando en modo autónomo local.');
+      setServerSyncMessage('Conectando en modo autónomo.');
       setTimeout(() => setServerSyncMessage(null), 4000);
     } finally {
       setIsLoadingServer(false);
     }
   };
+
+  // Carga automática directa desde el servidor al entrar al panel
+  useEffect(() => {
+    handleLoadSolicitudesFromServer();
+  }, []);
 
   const handleEditNotes = (app: Applicant) => {
     setEditingNotesId(app.id);
@@ -235,11 +255,23 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onClose, onLogou
 
   // Member Management actions: Promover, Degradar, Botar, Añadir Manual
   const handlePromote = (member: ClanMember) => {
+    const ranks: ClanRank[] = ['Miembro', 'Veterano', 'Capitán', 'Colíder', 'Líder'];
+    const currentIndex = ranks.indexOf(member.rank);
+    if (currentIndex >= 0 && currentIndex < ranks.length - 1) {
+      const nextRank = ranks[currentIndex + 1];
+      cambiarRangoBackend(member.id, nextRank, leaderPassword).catch(() => {});
+    }
     promoteClanMember(member.id);
     refreshList();
   };
 
   const handleDemote = (member: ClanMember) => {
+    const ranks: ClanRank[] = ['Miembro', 'Veterano', 'Capitán', 'Colíder', 'Líder'];
+    const currentIndex = ranks.indexOf(member.rank);
+    if (currentIndex > 0) {
+      const prevRank = ranks[currentIndex - 1];
+      cambiarRangoBackend(member.id, prevRank, leaderPassword).catch(() => {});
+    }
     demoteClanMember(member.id);
     refreshList();
   };
@@ -264,7 +296,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onClose, onLogou
 
     const formattedNick = cleanNick.startsWith('⚡SPARTA・') ? cleanNick : `⚡SPARTA・${cleanNick}`;
 
-    saveClanMember({
+    const memberData = {
       gameId: cleanId,
       nickname: formattedNick,
       phone: cleanPhone,
@@ -272,7 +304,10 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onClose, onLogou
       role: manualRole,
       region: manualRegion,
       level: Number(manualLevel) || 65,
-    });
+    };
+
+    agregarMiembroBackend(memberData, leaderPassword).catch(() => {});
+    saveClanMember(memberData);
 
     setManualGameId('');
     setManualNickname('');
@@ -304,8 +339,10 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onClose, onLogou
     setSelectedApplicantForStats(pseudoApplicant);
   };
 
-  // Filtered applicants
+  // Filtered applicants: REGLA CRÍTICA: Los aceptados ya forman parte del clan, por lo que su solicitud YA NO SE REFLEJA
   const filteredApplicants = applicants.filter((app) => {
+    if (app.status === 'aceptado') return false; // NUNCA se refleja en peticiones
+
     const matchesSearch =
       app.nickname.toLowerCase().includes(searchQuery.toLowerCase()) ||
       app.gameId.includes(searchQuery) ||

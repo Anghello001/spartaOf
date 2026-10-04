@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { X, Shield, CheckCircle2, Clock, Swords, XCircle, LogOut, Phone, Hash, ArrowRight, MessageCircle, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Shield, CheckCircle2, Clock, Swords, XCircle, LogOut, Phone, Hash, ArrowRight, MessageCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { Applicant, UserSession } from '../types';
 import { authenticateUser, getApplicants, saveUserSession, clearUserSession } from '../services/storageService';
+import { queryApplicantStatusBackend } from '../services/apiService';
 
 interface ApplicantPortalModalProps {
   isOpen: boolean;
@@ -21,46 +22,100 @@ export const ApplicantPortalModal: React.FC<ApplicantPortalModalProps> = ({
   const [phoneInput, setPhoneInput] = useState('');
   const [gameIdInput, setGameIdInput] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [isCheckingServer, setIsCheckingServer] = useState(false);
+  const [serverApplicant, setServerApplicant] = useState<Applicant | null>(null);
+
+  // Consultar al servidor central en tiempo real si el usuario tiene sesión activa
+  useEffect(() => {
+    if (isOpen && userSession) {
+      queryApplicantStatusBackend(userSession.phone, userSession.gameId).then((res) => {
+        if (res.success && res.applicant) {
+          setServerApplicant(res.applicant);
+        }
+      });
+    }
+  }, [isOpen, userSession]);
 
   if (!isOpen) return null;
 
-  // If user is already logged in, find their current applicant record
-  const currentApplicant: Applicant | undefined = userSession
-    ? getApplicants().find((a) => a.id === userSession.applicantId || a.gameId === userSession.gameId)
-    : undefined;
+  // Priorizar datos en tiempo real del servidor central
+  const currentApplicant: Applicant | undefined =
+    serverApplicant ||
+    (userSession
+      ? getApplicants().find((a) => a.id === userSession.applicantId || a.gameId === userSession.gameId)
+      : undefined);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
+    setIsCheckingServer(true);
 
     const cleanPhone = phoneInput.trim().replace(/[\s-]/g, '');
     const cleanId = gameIdInput.trim().replace(/\D/g, '');
 
     if (!cleanPhone || !cleanId) {
       setLoginError('Por favor completa tanto tu número de celular como tu ID.');
+      setIsCheckingServer(false);
       return;
     }
 
-    const matched = authenticateUser(cleanPhone, cleanId);
-    if (!matched) {
-      setLoginError(
-        'No se encontró ninguna postulación con este número de celular e ID. Verifica los dígitos o envía una nueva solicitud en el formulario.'
-      );
-      return;
-    }
+    try {
+      // 1. Consultar directamente al servidor central (Render / backend) sin depender de localStorage
+      const serverRes = await queryApplicantStatusBackend(cleanPhone, cleanId);
 
-    const session: UserSession = {
-      phone: matched.phone,
-      gameId: matched.gameId,
-      applicantId: matched.id,
-      nickname: matched.nickname,
-    };
-    saveUserSession(session);
-    onSessionChange(session);
+      if (serverRes.success && (serverRes.applicant || serverRes.member)) {
+        const found = serverRes.applicant || serverRes.member;
+        const session: UserSession = {
+          phone: found.phone,
+          gameId: found.gameId,
+          applicantId: found.id,
+          nickname: found.nickname,
+        };
+        setServerApplicant(serverRes.applicant || null);
+        saveUserSession(session);
+        onSessionChange(session);
+        return;
+      }
+
+      // 2. Si no se encontró en el servidor
+      const matched = authenticateUser(cleanPhone, cleanId);
+      if (!matched) {
+        setLoginError(
+          'No se encontró ninguna postulación con este número de celular e ID en el servidor. Verifica los dígitos o envía una nueva solicitud en el formulario.'
+        );
+        return;
+      }
+
+      const session: UserSession = {
+        phone: matched.phone,
+        gameId: matched.gameId,
+        applicantId: matched.id,
+        nickname: matched.nickname,
+      };
+      saveUserSession(session);
+      onSessionChange(session);
+    } catch {
+      const matched = authenticateUser(cleanPhone, cleanId);
+      if (matched) {
+        const session: UserSession = {
+          phone: matched.phone,
+          gameId: matched.gameId,
+          applicantId: matched.id,
+          nickname: matched.nickname,
+        };
+        saveUserSession(session);
+        onSessionChange(session);
+      } else {
+        setLoginError('Error de conexión con el servidor. Intenta nuevamente.');
+      }
+    } finally {
+      setIsCheckingServer(false);
+    }
   };
 
   const handleLogout = () => {
     clearUserSession();
+    setServerApplicant(null);
     onSessionChange(null);
   };
 

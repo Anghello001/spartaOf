@@ -176,6 +176,216 @@ export async function botarJugadorBackend(
   }
 }
 
+// 4. Aceptar Recluta en el Servidor (se traslada a miembros y SE ELIMINA de peticiones)
+export async function acceptRecruitBackend(
+  id: string,
+  password: string
+): Promise<{ success: boolean; member?: any; mensaje?: string; error?: string }> {
+  const backendUrl = getBackendUrl();
+  const endpoint = backendUrl ? `${backendUrl}/api/lideres/aceptar-recluta/${id}` : `/api/lideres/aceptar-recluta/${id}`;
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-LEADER-PASSWORD': password,
+      },
+      body: JSON.stringify({ password }),
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeoutId));
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return { success: false, error: err.error || 'Error al aceptar al recluta en el servidor.' };
+    }
+
+    const data = await res.json();
+    return {
+      success: true,
+      member: data.member,
+      mensaje: data.mensaje,
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+// 5. Cambiar Estado en el Servidor (en_prueba, notas, etc.)
+export async function changeRecruitStatusBackend(
+  id: string,
+  status: string,
+  password: string,
+  staffNotes?: string
+): Promise<{ success: boolean; applicant?: any; member?: any; error?: string }> {
+  const backendUrl = getBackendUrl();
+  const endpoint = backendUrl ? `${backendUrl}/api/lideres/cambiar-estado/${id}` : `/api/lideres/cambiar-estado/${id}`;
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-LEADER-PASSWORD': password,
+      },
+      body: JSON.stringify({ password, status, staffNotes }),
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeoutId));
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return { success: false, error: err.error || 'Error al actualizar estado en el servidor.' };
+    }
+
+    const data = await res.json();
+    return {
+      success: true,
+      applicant: data.applicant,
+      member: data.member,
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+// 6. Consultar Estado Directamente al Servidor Central (Sin localStorage en cliente)
+export async function queryApplicantStatusBackend(
+  phone: string,
+  gameId: string
+): Promise<{ success: boolean; applicant?: any; isMember?: boolean; member?: any; error?: string }> {
+  const backendUrl = getBackendUrl();
+  const endpoint = backendUrl ? `${backendUrl}/api/consultar-estado` : '/api/consultar-estado';
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, gameId }),
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeoutId));
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return {
+        success: false,
+        error: err.error || 'No se encontró tu solicitud en el servidor central.',
+      };
+    }
+
+    const data = await res.json();
+    return {
+      success: true,
+      applicant: data.applicant,
+      isMember: data.isMember,
+      member: data.member,
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+// 7. Cargar Miembros Públicos del Servidor (Para que todos los dispositivos vean los mismos miembros)
+export async function fetchPublicClanMembers(): Promise<{ success: boolean; members?: any[]; error?: string }> {
+  const backendUrl = getBackendUrl();
+  const endpoint = backendUrl ? `${backendUrl}/api/miembros-publicos` : '/api/miembros-publicos';
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    const res = await fetch(endpoint, { signal: controller.signal }).finally(() =>
+      clearTimeout(timeoutId)
+    );
+
+    if (!res.ok) {
+      return { success: false, error: `HTTP ${res.status}` };
+    }
+
+    const data = await res.json();
+    return { success: true, members: data.members || [] };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+// 8. Agregar Miembro Manual en el Servidor
+export async function agregarMiembroBackend(
+  data: any,
+  password: string
+): Promise<{ success: boolean; member?: any; error?: string }> {
+  const backendUrl = getBackendUrl();
+  const endpoint = backendUrl ? `${backendUrl}/api/lideres/agregar-miembro` : '/api/lideres/agregar-miembro';
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-LEADER-PASSWORD': password,
+      },
+      body: JSON.stringify({ ...data, password }),
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeoutId));
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return { success: false, error: err.error || 'Error al agregar miembro en el servidor.' };
+    }
+
+    const resJson = await res.json();
+    return { success: true, member: resJson.member };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+// 9. Cambiar Rango en el Servidor
+export async function cambiarRangoBackend(
+  id: string,
+  rank: string,
+  password: string
+): Promise<{ success: boolean; member?: any; error?: string }> {
+  const backendUrl = getBackendUrl();
+  const endpoint = backendUrl ? `${backendUrl}/api/lideres/cambiar-rango/${id}` : `/api/lideres/cambiar-rango/${id}`;
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-LEADER-PASSWORD': password,
+      },
+      body: JSON.stringify({ rank, password }),
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeoutId));
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return { success: false, error: err.error || 'Error al cambiar rango en el servidor.' };
+    }
+
+    const resJson = await res.json();
+    return { success: true, member: resJson.member };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
 /**
  * Comprueba el estado del servidor en Render
  */
