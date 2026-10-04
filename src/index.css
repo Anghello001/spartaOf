@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-spartan: 'Cinzel', serif;
+    --font-tactical: 'Rajdhani', sans-serif;
+    --font-body: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  body {
+    font-family: var(--font-body);
+    background-color: #0a0a0c;
+    color: #e5e5e5;
+  }
+}
+
+.font-spartan {
+  font-family: 'Cinzel', serif;
+}
+
+.font-tactical {
+  font-family: 'Rajdhani', sans-serif;
+}
+
+/* Spartan gold and crimson subtle glow effects */
+.glow-gold {
+  box-shadow: 0 0 25px -5px rgba(234, 179, 8, 0.25);
+}
+
+.glow-crimson {
+  box-shadow: 0 0 25px -5px rgba(220, 38, 38, 0.3);
+}
+
+.border-spartan {
+  border-color: rgba(234, 179, 8, 0.2);
+}
+
+/* Custom sleek dark scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0f0f13;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2a35;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #d97706;
+}

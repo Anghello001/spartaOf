@@ -1,0 +1,6 @@
+{
+  "name": "OF SPARTA | Clan Free Fire Oficial",
+  "description": "Portal oficial del Clan Free Fire OF SPARTA. Sistema de reclutamiento competitivo, consulta de estadísticas con Gameskinbo y gestión de postulaciones.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
