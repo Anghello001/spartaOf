@@ -17,6 +17,7 @@ import {
   getApplicants,
   getClanMembers,
 } from './services/storageService';
+import { fetchPublicClanMembers } from './services/apiService';
 
 export default function App() {
   const [userSession, setUserSession] = useState<UserSession | null>(getUserSession());
@@ -33,7 +34,13 @@ export default function App() {
     setUserSession(getUserSession());
     setIsStaff(isStaffAuthenticated());
     setApplicantsList(getApplicants());
-    setClanMembers(getClanMembers());
+    
+    // Cargar miembros reales directamente desde el backend/MongoDB
+    fetchPublicClanMembers().then((res) => {
+      if (res.success && res.members) {
+        setClanMembers(res.members);
+      }
+    }).catch(() => {});
   }, []);
 
   const currentApplicant: Applicant | null = userSession

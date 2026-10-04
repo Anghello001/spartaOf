@@ -4,6 +4,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { MongoClient, Db, Collection } from 'mongodb';
 
 dotenv.config();
 
@@ -17,7 +18,7 @@ const PORT = process.env.PORT || 10000;
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 const DATA_FILE = path.join(DATA_DIR, 'sparta_store.json');
 
-// Configuración de CORS total: permite que cualquier origen (como Vercel o el móvil de un amigo) envíe datos sin bloqueos
+// Configuración de CORS total
 app.use(
   cors({
     origin: '*',
@@ -54,7 +55,7 @@ function isAuthorizedLeader(req: Request): boolean {
   return Boolean(provided && VALID_PASSWORDS.includes(provided));
 }
 
-// In-memory applicants store
+// Modelos de datos
 interface ServerApplicant {
   id: string;
   gameId: string;
@@ -85,66 +86,105 @@ interface ServerClanMember {
   joinedAt: string;
 }
 
+// Stores limpios (sin datos ficticios)
 let serverApplicantsStore: ServerApplicant[] = [];
-let serverClanMembersStore: ServerClanMember[] = [
-  {
-    id: 'sparta-mbr-1',
-    gameId: '1092837415',
-    nickname: '⚡SPARTA・LEONIDAS',
-    phone: '+525512340001',
-    rank: 'Líder',
-    role: 'IGL / Capitán',
-    region: 'EEUU',
-    level: 79,
-    joinedAt: '2025-01-15T00:00:00.000Z',
-  },
-  {
-    id: 'sparta-mbr-2',
-    gameId: '1849204981',
-    nickname: '⚡SPARTA・ARES',
-    phone: '+525512340002',
-    rank: 'Colíder',
-    role: 'Rusher',
-    region: 'EEUU',
-    level: 76,
-    joinedAt: '2025-02-10T00:00:00.000Z',
-  },
-  {
-    id: 'sparta-mbr-3',
-    gameId: '2093849182',
-    nickname: '⚡SPARTA・ATHENA',
-    phone: '+573102340003',
-    rank: 'Capitán',
-    role: 'Sniper',
-    region: 'EEUU',
-    level: 74,
-    joinedAt: '2025-03-01T00:00:00.000Z',
-  },
-  {
-    id: 'sparta-mbr-4',
-    gameId: '1540928374',
-    nickname: '⚡SPARTA・KRATOS',
-    phone: '+549112340004',
-    rank: 'Veterano',
-    role: 'Rusher',
-    region: 'SUD',
-    level: 72,
-    joinedAt: '2025-04-12T00:00:00.000Z',
-  },
-  {
-    id: 'sparta-mbr-5',
-    gameId: '2837491028',
-    nickname: '⚡SPARTA・VULCAN',
-    phone: '+519872340005',
-    rank: 'Veterano',
-    role: 'Soporte',
-    region: 'SUD',
-    level: 71,
-    joinedAt: '2025-05-20T00:00:00.000Z',
-  },
-];
+let serverClanMembersStore: ServerClanMember[] = [];
 
-// Funciones de sincronización persistente centralizada (sin almacenamiento local de cliente)
+// ==========================================
+// INTEGRACIÓN CON MONGODB (Atlas o Local)
+// ==========================================
+const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || '';
+let mongoClient: MongoClient | null = null;
+let mongoDb: Db | null = null;
+let solicitudesCol: Collection<ServerApplicant> | null = null;
+let miembrosCol: Collection<ServerClanMember> | null = null;
+
+async function initMongoDB() {
+  if (!MONGO_URI) {
+    console.log('[MongoDB] MONGO_URI no detectado en variables. Operando con persistencia de archivo/memoria.');
+    return;
+  }
+  try {
+    mongoClient = new MongoClient(MONGO_URI);
+    await mongoClient.connect();
+    mongoDb = mongoClient.db('of_sparta_db');
+    solicitudesCol = mongoDb.collection<ServerApplicant>('solicitudes');
+    miembrosCol = mongoDb.collection<ServerClanMember>('miembros');
+    console.log('[MongoDB] Conectado exitosamente a MongoDB Atlas (Base: of_sparta_db).');
+
+    // Sincronizar desde MongoDB al iniciar
+    const mongoApplicants = await solicitudesCol.find({}).toArray();
+    const mongoMembers = await miembrosCol.find({}).toArray();
+
+    serverApplicantsStore = mongoApplicants.map(({ _id, ...rest }: any) => rest);
+    serverClanMembersStore = mongoMembers.map(({ _id, ...rest }: any) => rest);
+
+    console.log(`[MongoDB] Datos sincronizados: ${serverApplicantsStore.length} solicitudes activas, ${serverClanMembersStore.length} miembros oficiales.`);
+  } catch (err: any) {
+    console.error('[MongoDB] Error al conectar con MongoDB:', err.message);
+  }
+}
+
+async function dbSaveApplicant(applicant: ServerApplicant) {
+  if (solicitudesCol) {
+    try {
+      await solicitudesCol.updateOne(
+        { id: applicant.id },
+        { $set: applicant },
+        { upsert: true }
+      );
+    } catch (err: any) {
+      console.error('[MongoDB] Error guardando solicitud:', err.message);
+    }
+  }
+}
+
+async function dbDeleteApplicant(id: string, gameId?: string) {
+  if (solicitudesCol) {
+    try {
+      const filter = gameId ? { $or: [{ id }, { gameId }] } : { id };
+      await solicitudesCol.deleteMany(filter);
+    } catch (err: any) {
+      console.error('[MongoDB] Error eliminando solicitud:', err.message);
+    }
+  }
+}
+
+async function dbSaveMember(member: ServerClanMember) {
+  if (miembrosCol) {
+    try {
+      await miembrosCol.updateOne(
+        { id: member.id },
+        { $set: member },
+        { upsert: true }
+      );
+    } catch (err: any) {
+      console.error('[MongoDB] Error guardando miembro:', err.message);
+    }
+  }
+}
+
+async function dbDeleteMember(id: string) {
+  if (miembrosCol) {
+    try {
+      await miembrosCol.deleteOne({ id });
+    } catch (err: any) {
+      console.error('[MongoDB] Error eliminando miembro:', err.message);
+    }
+  }
+}
+
+async function dbUpdateMemberRank(id: string, rank: string) {
+  if (miembrosCol) {
+    try {
+      await miembrosCol.updateOne({ id }, { $set: { rank: rank as any } });
+    } catch (err: any) {
+      console.error('[MongoDB] Error actualizando rango:', err.message);
+    }
+  }
+}
+
+// Funciones de sincronización persistente local en disco
 function loadServerStore() {
   try {
     if (fs.existsSync(DATA_FILE)) {
@@ -153,13 +193,13 @@ function loadServerStore() {
       if (Array.isArray(data.applicants)) {
         serverApplicantsStore = data.applicants;
       }
-      if (Array.isArray(data.members) && data.members.length > 0) {
+      if (Array.isArray(data.members)) {
         serverClanMembersStore = data.members;
       }
       console.log(`[Storage] Base centralizada cargada: ${serverApplicantsStore.length} solicitudes, ${serverClanMembersStore.length} miembros.`);
     }
   } catch (err) {
-    console.warn('[Storage] Aviso: usando base en memoria:', err);
+    console.warn('[Storage] Aviso al leer archivo local:', err);
   }
 }
 
@@ -186,7 +226,9 @@ function saveServerStore() {
   }
 }
 
+// Inicializar almacenamiento
 loadServerStore();
+initMongoDB().catch((err) => console.warn('[MongoDB] Init error:', err));
 
 /**
  * Health Check Endpoint
@@ -252,6 +294,7 @@ const handleBotar = async (req: Request, res: Response) => {
   const applicantIndex = serverApplicantsStore.findIndex((a) => a.id === id);
   if (applicantIndex >= 0) {
     const deleted = serverApplicantsStore.splice(applicantIndex, 1);
+    await dbDeleteApplicant(id, deleted[0]?.gameId);
     saveServerStore();
     res.status(200).json({
       success: true,
@@ -265,6 +308,7 @@ const handleBotar = async (req: Request, res: Response) => {
   const memberIndex = serverClanMembersStore.findIndex((m) => m.id === id);
   if (memberIndex >= 0) {
     const kicked = serverClanMembersStore.splice(memberIndex, 1);
+    await dbDeleteMember(id);
     saveServerStore();
     res.status(200).json({
       success: true,
@@ -282,7 +326,7 @@ app.delete('/api/lideres/botar/:id', handleBotar);
 app.post('/api/lideres/botar/:id', handleBotar);
 
 // 4. RUTA PARA PROMOVER O DEGRADAR MIEMBRO
-app.post('/api/lideres/cambiar-rango/:id', (req: Request, res: Response) => {
+app.post('/api/lideres/cambiar-rango/:id', async (req: Request, res: Response) => {
   if (!isAuthorizedLeader(req)) {
     res.status(401).json({ error: 'No tienes permiso para hacer esto.' });
     return;
@@ -299,6 +343,7 @@ app.post('/api/lideres/cambiar-rango/:id', (req: Request, res: Response) => {
 
   if (rank) {
     member.rank = rank;
+    await dbUpdateMemberRank(id, rank);
   }
 
   saveServerStore();
@@ -306,7 +351,7 @@ app.post('/api/lideres/cambiar-rango/:id', (req: Request, res: Response) => {
 });
 
 // 5. RUTA PARA AGREGAR MIEMBRO MANUAL
-app.post('/api/lideres/agregar-miembro', (req: Request, res: Response) => {
+app.post('/api/lideres/agregar-miembro', async (req: Request, res: Response) => {
   if (!isAuthorizedLeader(req)) {
     res.status(401).json({ error: 'No tienes permiso para hacer esto.' });
     return;
@@ -331,13 +376,14 @@ app.post('/api/lideres/agregar-miembro', (req: Request, res: Response) => {
   };
 
   serverClanMembersStore.unshift(newMember);
+  await dbSaveMember(newMember);
   saveServerStore();
   res.status(200).json({ success: true, member: newMember });
 });
 
 // 6. RUTA PARA ACEPTAR A UN RECLUTA EN EL CLAN
 // REGLA CRÍTICA: Al aceptar a alguien en el clan, su solicitud YA NO SE REFLEJA (se elimina de solicitudes)
-app.post('/api/lideres/aceptar-recluta/:id', (req: Request, res: Response) => {
+app.post('/api/lideres/aceptar-recluta/:id', async (req: Request, res: Response) => {
   if (!isAuthorizedLeader(req)) {
     res.status(401).json({ error: 'No tienes permiso para hacer esto.' });
     return;
@@ -379,8 +425,12 @@ app.post('/api/lideres/aceptar-recluta/:id', (req: Request, res: Response) => {
     serverClanMembersStore.unshift(member);
   }
 
-  // Eliminar inmediatamente de la lista de solicitudes para que ya NO se refleje
+  // Guardar miembro en MongoDB
+  await dbSaveMember(member);
+
+  // Eliminar inmediatamente de la lista de solicitudes en memoria y MongoDB para que ya NO se refleje
   serverApplicantsStore.splice(applicantIndex, 1);
+  await dbDeleteApplicant(id, applicant.gameId);
   saveServerStore();
 
   res.status(200).json({
@@ -390,8 +440,8 @@ app.post('/api/lideres/aceptar-recluta/:id', (req: Request, res: Response) => {
   });
 });
 
-// 7. RUTA PARA CAMBIAR ESTADO DE SOLICITUD (En prueba, notas, o aceptación)
-app.post('/api/lideres/cambiar-estado/:id', (req: Request, res: Response) => {
+// 7. RUTA PARA CAMBIAR ESTADO DE SOLICITUD (En prueba, notas, rechazo o aceptación)
+app.post('/api/lideres/cambiar-estado/:id', async (req: Request, res: Response) => {
   if (!isAuthorizedLeader(req)) {
     res.status(401).json({ error: 'No tienes permiso para hacer esto.' });
     return;
@@ -426,7 +476,11 @@ app.post('/api/lideres/cambiar-estado/:id', (req: Request, res: Response) => {
       joinedAt: new Date().toISOString(),
     };
     serverClanMembersStore.unshift(newMember);
+    await dbSaveMember(newMember);
+
+    // Se remueve de solicitudes en memoria y MongoDB
     serverApplicantsStore.splice(applicantIndex, 1);
+    await dbDeleteApplicant(id, applicant.gameId);
     saveServerStore();
 
     res.status(200).json({
@@ -437,11 +491,25 @@ app.post('/api/lideres/cambiar-estado/:id', (req: Request, res: Response) => {
     return;
   }
 
+  // REGLA CRÍTICA: Al rechazar a alguien en el clan su solicitud YA NO SE REFLEJA (se elimina de peticiones)
+  if (status === 'rechazado') {
+    const deleted = serverApplicantsStore.splice(applicantIndex, 1);
+    await dbDeleteApplicant(id, deleted[0]?.gameId);
+    saveServerStore();
+
+    res.status(200).json({
+      success: true,
+      mensaje: 'Postulación rechazada y eliminada de las peticiones activas.',
+    });
+    return;
+  }
+
   const applicant = serverApplicantsStore[applicantIndex];
   if (status) applicant.status = status;
   if (staffNotes !== undefined) applicant.staffNotes = staffNotes;
   applicant.updatedAt = new Date().toISOString();
 
+  await dbSaveApplicant(applicant);
   saveServerStore();
   res.status(200).json({ success: true, applicant });
 });
@@ -591,8 +659,10 @@ app.post('/api/reclutar', async (req: Request, res: Response) => {
       id: serverApplicantsStore[existingIdx].id,
       createdAt: serverApplicantsStore[existingIdx].createdAt,
     };
+    await dbSaveApplicant(serverApplicantsStore[existingIdx]);
   } else {
     serverApplicantsStore.unshift(newApplicant);
+    await dbSaveApplicant(newApplicant);
   }
   saveServerStore();
 

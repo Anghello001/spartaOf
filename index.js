@@ -1,14 +1,18 @@
 // server.ts
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import cors from "cors";
 import dotenv from "dotenv";
+import { MongoClient } from "mongodb";
 dotenv.config();
 var __filename = fileURLToPath(import.meta.url);
 var __dirname = path.dirname(__filename);
 var app = express();
 var PORT = process.env.PORT || 1e4;
+var DATA_DIR = path.resolve(process.cwd(), "data");
+var DATA_FILE = path.join(DATA_DIR, "sparta_store.json");
 app.use(
   cors({
     origin: "*",
@@ -36,63 +40,128 @@ function isAuthorizedLeader(req) {
   return Boolean(provided && VALID_PASSWORDS.includes(provided));
 }
 var serverApplicantsStore = [];
-var serverClanMembersStore = [
-  {
-    id: "sparta-mbr-1",
-    gameId: "1092837415",
-    nickname: "\u26A1SPARTA\u30FBLEONIDAS",
-    phone: "+525512340001",
-    rank: "L\xEDder",
-    role: "IGL / Capit\xE1n",
-    region: "EEUU",
-    level: 79,
-    joinedAt: "2025-01-15T00:00:00.000Z"
-  },
-  {
-    id: "sparta-mbr-2",
-    gameId: "1849204981",
-    nickname: "\u26A1SPARTA\u30FBARES",
-    phone: "+525512340002",
-    rank: "Col\xEDder",
-    role: "Rusher",
-    region: "EEUU",
-    level: 76,
-    joinedAt: "2025-02-10T00:00:00.000Z"
-  },
-  {
-    id: "sparta-mbr-3",
-    gameId: "2093849182",
-    nickname: "\u26A1SPARTA\u30FBATHENA",
-    phone: "+573102340003",
-    rank: "Capit\xE1n",
-    role: "Sniper",
-    region: "EEUU",
-    level: 74,
-    joinedAt: "2025-03-01T00:00:00.000Z"
-  },
-  {
-    id: "sparta-mbr-4",
-    gameId: "1540928374",
-    nickname: "\u26A1SPARTA\u30FBKRATOS",
-    phone: "+549112340004",
-    rank: "Veterano",
-    role: "Rusher",
-    region: "SUD",
-    level: 72,
-    joinedAt: "2025-04-12T00:00:00.000Z"
-  },
-  {
-    id: "sparta-mbr-5",
-    gameId: "2837491028",
-    nickname: "\u26A1SPARTA\u30FBVULCAN",
-    phone: "+519872340005",
-    rank: "Veterano",
-    role: "Soporte",
-    region: "SUD",
-    level: 71,
-    joinedAt: "2025-05-20T00:00:00.000Z"
+var serverClanMembersStore = [];
+var MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || "";
+var mongoClient = null;
+var mongoDb = null;
+var solicitudesCol = null;
+var miembrosCol = null;
+async function initMongoDB() {
+  if (!MONGO_URI) {
+    console.log("[MongoDB] MONGO_URI no detectado en variables. Operando con persistencia de archivo/memoria.");
+    return;
   }
-];
+  try {
+    mongoClient = new MongoClient(MONGO_URI);
+    await mongoClient.connect();
+    mongoDb = mongoClient.db("of_sparta_db");
+    solicitudesCol = mongoDb.collection("solicitudes");
+    miembrosCol = mongoDb.collection("miembros");
+    console.log("[MongoDB] Conectado exitosamente a MongoDB Atlas (Base: of_sparta_db).");
+    const mongoApplicants = await solicitudesCol.find({}).toArray();
+    const mongoMembers = await miembrosCol.find({}).toArray();
+    serverApplicantsStore = mongoApplicants.map(({ _id, ...rest }) => rest);
+    serverClanMembersStore = mongoMembers.map(({ _id, ...rest }) => rest);
+    console.log(`[MongoDB] Datos sincronizados: ${serverApplicantsStore.length} solicitudes activas, ${serverClanMembersStore.length} miembros oficiales.`);
+  } catch (err) {
+    console.error("[MongoDB] Error al conectar con MongoDB:", err.message);
+  }
+}
+async function dbSaveApplicant(applicant) {
+  if (solicitudesCol) {
+    try {
+      await solicitudesCol.updateOne(
+        { id: applicant.id },
+        { $set: applicant },
+        { upsert: true }
+      );
+    } catch (err) {
+      console.error("[MongoDB] Error guardando solicitud:", err.message);
+    }
+  }
+}
+async function dbDeleteApplicant(id, gameId) {
+  if (solicitudesCol) {
+    try {
+      const filter = gameId ? { $or: [{ id }, { gameId }] } : { id };
+      await solicitudesCol.deleteMany(filter);
+    } catch (err) {
+      console.error("[MongoDB] Error eliminando solicitud:", err.message);
+    }
+  }
+}
+async function dbSaveMember(member) {
+  if (miembrosCol) {
+    try {
+      await miembrosCol.updateOne(
+        { id: member.id },
+        { $set: member },
+        { upsert: true }
+      );
+    } catch (err) {
+      console.error("[MongoDB] Error guardando miembro:", err.message);
+    }
+  }
+}
+async function dbDeleteMember(id) {
+  if (miembrosCol) {
+    try {
+      await miembrosCol.deleteOne({ id });
+    } catch (err) {
+      console.error("[MongoDB] Error eliminando miembro:", err.message);
+    }
+  }
+}
+async function dbUpdateMemberRank(id, rank) {
+  if (miembrosCol) {
+    try {
+      await miembrosCol.updateOne({ id }, { $set: { rank } });
+    } catch (err) {
+      console.error("[MongoDB] Error actualizando rango:", err.message);
+    }
+  }
+}
+function loadServerStore() {
+  try {
+    if (fs.existsSync(DATA_FILE)) {
+      const content = fs.readFileSync(DATA_FILE, "utf-8");
+      const data = JSON.parse(content);
+      if (Array.isArray(data.applicants)) {
+        serverApplicantsStore = data.applicants;
+      }
+      if (Array.isArray(data.members)) {
+        serverClanMembersStore = data.members;
+      }
+      console.log(`[Storage] Base centralizada cargada: ${serverApplicantsStore.length} solicitudes, ${serverClanMembersStore.length} miembros.`);
+    }
+  } catch (err) {
+    console.warn("[Storage] Aviso al leer archivo local:", err);
+  }
+}
+function saveServerStore() {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(
+      DATA_FILE,
+      JSON.stringify(
+        {
+          applicants: serverApplicantsStore,
+          members: serverClanMembersStore,
+          lastUpdated: (/* @__PURE__ */ new Date()).toISOString()
+        },
+        null,
+        2
+      ),
+      "utf-8"
+    );
+  } catch (err) {
+    console.warn("[Storage] Error al persistir datos centrales:", err);
+  }
+}
+loadServerStore();
+initMongoDB().catch((err) => console.warn("[MongoDB] Init error:", err));
 app.get("/api/health", (req, res) => {
   res.status(200).json({
     status: "healthy",
@@ -137,6 +206,8 @@ var handleBotar = async (req, res) => {
   const applicantIndex = serverApplicantsStore.findIndex((a) => a.id === id);
   if (applicantIndex >= 0) {
     const deleted = serverApplicantsStore.splice(applicantIndex, 1);
+    await dbDeleteApplicant(id, deleted[0]?.gameId);
+    saveServerStore();
     res.status(200).json({
       success: true,
       mensaje: "Jugador rechazado y eliminado de la lista de postulaciones.",
@@ -147,6 +218,8 @@ var handleBotar = async (req, res) => {
   const memberIndex = serverClanMembersStore.findIndex((m) => m.id === id);
   if (memberIndex >= 0) {
     const kicked = serverClanMembersStore.splice(memberIndex, 1);
+    await dbDeleteMember(id);
+    saveServerStore();
     res.status(200).json({
       success: true,
       mensaje: "Miembro botado y eliminado del clan OF SPARTA.",
@@ -158,7 +231,7 @@ var handleBotar = async (req, res) => {
 };
 app.delete("/api/lideres/botar/:id", handleBotar);
 app.post("/api/lideres/botar/:id", handleBotar);
-app.post("/api/lideres/cambiar-rango/:id", (req, res) => {
+app.post("/api/lideres/cambiar-rango/:id", async (req, res) => {
   if (!isAuthorizedLeader(req)) {
     res.status(401).json({ error: "No tienes permiso para hacer esto." });
     return;
@@ -172,10 +245,12 @@ app.post("/api/lideres/cambiar-rango/:id", (req, res) => {
   }
   if (rank) {
     member.rank = rank;
+    await dbUpdateMemberRank(id, rank);
   }
+  saveServerStore();
   res.status(200).json({ success: true, member });
 });
-app.post("/api/lideres/agregar-miembro", (req, res) => {
+app.post("/api/lideres/agregar-miembro", async (req, res) => {
   if (!isAuthorizedLeader(req)) {
     res.status(401).json({ error: "No tienes permiso para hacer esto." });
     return;
@@ -197,7 +272,174 @@ app.post("/api/lideres/agregar-miembro", (req, res) => {
     joinedAt: (/* @__PURE__ */ new Date()).toISOString()
   };
   serverClanMembersStore.unshift(newMember);
+  await dbSaveMember(newMember);
+  saveServerStore();
   res.status(200).json({ success: true, member: newMember });
+});
+app.post("/api/lideres/aceptar-recluta/:id", async (req, res) => {
+  if (!isAuthorizedLeader(req)) {
+    res.status(401).json({ error: "No tienes permiso para hacer esto." });
+    return;
+  }
+  const { id } = req.params;
+  const applicantIndex = serverApplicantsStore.findIndex((a) => a.id === id);
+  if (applicantIndex === -1) {
+    res.status(404).json({ error: "Solicitud de recluta no encontrada en el servidor." });
+    return;
+  }
+  const applicant = serverApplicantsStore[applicantIndex];
+  const cleanNick = applicant.nickname.startsWith("\u26A1SPARTA\u30FB") ? applicant.nickname : `\u26A1SPARTA\u30FB${applicant.nickname}`;
+  const existingMemberIndex = serverClanMembersStore.findIndex(
+    (m) => m.gameId === applicant.gameId
+  );
+  let member;
+  if (existingMemberIndex >= 0) {
+    member = serverClanMembersStore[existingMemberIndex];
+  } else {
+    member = {
+      id: `sparta-mbr-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      gameId: applicant.gameId,
+      nickname: cleanNick,
+      phone: applicant.phone,
+      rank: "Miembro",
+      role: applicant.role || "Rusher",
+      region: applicant.region || "EEUU",
+      level: applicant.level || 65,
+      joinedAt: (/* @__PURE__ */ new Date()).toISOString()
+    };
+    serverClanMembersStore.unshift(member);
+  }
+  await dbSaveMember(member);
+  serverApplicantsStore.splice(applicantIndex, 1);
+  await dbDeleteApplicant(id, applicant.gameId);
+  saveServerStore();
+  res.status(200).json({
+    success: true,
+    mensaje: `\xA1${applicant.nickname} ha sido aceptado oficialmente en el Clan OF SPARTA! Su solicitud ya no se refleja en peticiones.`,
+    member
+  });
+});
+app.post("/api/lideres/cambiar-estado/:id", async (req, res) => {
+  if (!isAuthorizedLeader(req)) {
+    res.status(401).json({ error: "No tienes permiso para hacer esto." });
+    return;
+  }
+  const { id } = req.params;
+  const { status, staffNotes } = req.body;
+  const applicantIndex = serverApplicantsStore.findIndex((a) => a.id === id);
+  if (applicantIndex === -1) {
+    res.status(404).json({ error: "Solicitud no encontrada." });
+    return;
+  }
+  if (status === "aceptado") {
+    const applicant2 = serverApplicantsStore[applicantIndex];
+    const cleanNick = applicant2.nickname.startsWith("\u26A1SPARTA\u30FB") ? applicant2.nickname : `\u26A1SPARTA\u30FB${applicant2.nickname}`;
+    const newMember = {
+      id: `sparta-mbr-${Date.now()}`,
+      gameId: applicant2.gameId,
+      nickname: cleanNick,
+      phone: applicant2.phone,
+      rank: "Miembro",
+      role: applicant2.role || "Rusher",
+      region: applicant2.region || "EEUU",
+      level: applicant2.level || 65,
+      joinedAt: (/* @__PURE__ */ new Date()).toISOString()
+    };
+    serverClanMembersStore.unshift(newMember);
+    await dbSaveMember(newMember);
+    serverApplicantsStore.splice(applicantIndex, 1);
+    await dbDeleteApplicant(id, applicant2.gameId);
+    saveServerStore();
+    res.status(200).json({
+      success: true,
+      mensaje: "Recluta aceptado. La solicitud ha sido promovida a Miembro y ya no se refleja en peticiones.",
+      member: newMember
+    });
+    return;
+  }
+  if (status === "rechazado") {
+    const deleted = serverApplicantsStore.splice(applicantIndex, 1);
+    await dbDeleteApplicant(id, deleted[0]?.gameId);
+    saveServerStore();
+    res.status(200).json({
+      success: true,
+      mensaje: "Postulaci\xF3n rechazada y eliminada de las peticiones activas."
+    });
+    return;
+  }
+  const applicant = serverApplicantsStore[applicantIndex];
+  if (status) applicant.status = status;
+  if (staffNotes !== void 0) applicant.staffNotes = staffNotes;
+  applicant.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
+  await dbSaveApplicant(applicant);
+  saveServerStore();
+  res.status(200).json({ success: true, applicant });
+});
+app.get("/api/miembros-publicos", (req, res) => {
+  res.status(200).json({
+    success: true,
+    total: serverClanMembersStore.length,
+    members: serverClanMembersStore
+  });
+});
+app.post("/api/consultar-estado", (req, res) => {
+  const { phone, gameId } = req.body;
+  const cleanPhone = (phone || "").toString().trim().replace(/[\s-]/g, "");
+  const cleanGameId = (gameId || "").toString().trim().replace(/\D/g, "");
+  if (!cleanPhone || !cleanGameId) {
+    res.status(400).json({
+      success: false,
+      error: "Debes proporcionar tu n\xFAmero de celular y tu ID de Free Fire."
+    });
+    return;
+  }
+  const member = serverClanMembersStore.find((m) => {
+    const mPhone = m.phone.replace(/[\s-]/g, "");
+    const phoneMatch = mPhone === cleanPhone || mPhone.endsWith(cleanPhone) || cleanPhone.endsWith(mPhone);
+    const idMatch = m.gameId === cleanGameId;
+    return phoneMatch && idMatch;
+  });
+  if (member) {
+    res.status(200).json({
+      success: true,
+      isMember: true,
+      status: "aceptado",
+      member,
+      applicant: {
+        id: member.id,
+        gameId: member.gameId,
+        nickname: member.nickname,
+        phone: member.phone,
+        region: member.region,
+        role: member.role,
+        level: member.level,
+        status: "aceptado",
+        createdAt: member.joinedAt,
+        updatedAt: member.joinedAt
+      },
+      mensaje: "\xA1Eres miembro oficial del Clan OF SPARTA!"
+    });
+    return;
+  }
+  const applicant = serverApplicantsStore.find((a) => {
+    const aPhone = a.phone.replace(/[\s-]/g, "");
+    const phoneMatch = aPhone === cleanPhone || aPhone.endsWith(cleanPhone) || cleanPhone.endsWith(aPhone);
+    const idMatch = a.gameId === cleanGameId;
+    return phoneMatch && idMatch;
+  });
+  if (applicant) {
+    res.status(200).json({
+      success: true,
+      isMember: false,
+      status: applicant.status,
+      applicant
+    });
+    return;
+  }
+  res.status(404).json({
+    success: false,
+    error: "No se encontr\xF3 ninguna postulaci\xF3n con este n\xFAmero de celular e ID en el servidor. Verifica los datos o env\xEDa una solicitud nueva."
+  });
 });
 app.post("/api/reclutar", async (req, res) => {
   const {
@@ -251,9 +493,12 @@ app.post("/api/reclutar", async (req, res) => {
       id: serverApplicantsStore[existingIdx].id,
       createdAt: serverApplicantsStore[existingIdx].createdAt
     };
+    await dbSaveApplicant(serverApplicantsStore[existingIdx]);
   } else {
     serverApplicantsStore.unshift(newApplicant);
+    await dbSaveApplicant(newApplicant);
   }
+  saveServerStore();
   const webhookUrl = process.env.WHATSAPP_WEBHOOK_URL;
   let webhookTriggered = false;
   if (webhookUrl) {

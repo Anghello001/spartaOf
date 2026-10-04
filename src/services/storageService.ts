@@ -1,114 +1,24 @@
 import { Applicant, ApplicantStatus, UserSession, ClanMember, ClanRank } from '../types';
 
-const APPLICANTS_STORAGE_KEY = 'sparta_clan_applicants_v2';
-const CLAN_MEMBERS_STORAGE_KEY = 'sparta_clan_members_v1';
+const APPLICANTS_STORAGE_KEY = 'sparta_clan_applicants_v3';
+const CLAN_MEMBERS_STORAGE_KEY = 'sparta_clan_members_v3';
 const USER_SESSION_KEY = 'sparta_user_session';
 const STAFF_AUTH_KEY = 'sparta_staff_authenticated';
 
-// Initial existing members of the clan OF SPARTA
-const SEED_CLAN_MEMBERS: ClanMember[] = [
-  {
-    id: 'sparta-mbr-1',
-    gameId: '1092837415',
-    nickname: '⚡SPARTA・LEONIDAS',
-    phone: '+525512340001',
-    rank: 'Líder',
-    role: 'IGL / Capitán',
-    region: 'EEUU',
-    level: 79,
-    joinedAt: '2025-01-15T00:00:00.000Z',
-  },
-  {
-    id: 'sparta-mbr-2',
-    gameId: '1849204981',
-    nickname: '⚡SPARTA・ARES',
-    phone: '+525512340002',
-    rank: 'Colíder',
-    role: 'Rusher',
-    region: 'EEUU',
-    level: 76,
-    joinedAt: '2025-02-10T00:00:00.000Z',
-  },
-  {
-    id: 'sparta-mbr-3',
-    gameId: '2093849182',
-    nickname: '⚡SPARTA・ATHENA',
-    phone: '+573102340003',
-    rank: 'Capitán',
-    role: 'Sniper',
-    region: 'EEUU',
-    level: 74,
-    joinedAt: '2025-03-01T00:00:00.000Z',
-  },
-  {
-    id: 'sparta-mbr-4',
-    gameId: '1540928374',
-    nickname: '⚡SPARTA・KRATOS',
-    phone: '+549112340004',
-    rank: 'Veterano',
-    role: 'Rusher',
-    region: 'SUD',
-    level: 72,
-    joinedAt: '2025-04-12T00:00:00.000Z',
-  },
-  {
-    id: 'sparta-mbr-5',
-    gameId: '2837491028',
-    nickname: '⚡SPARTA・VULCAN',
-    phone: '+519872340005',
-    rank: 'Veterano',
-    role: 'Soporte',
-    region: 'SUD',
-    level: 71,
-    joinedAt: '2025-05-20T00:00:00.000Z',
-  },
-  {
-    id: 'sparta-mbr-6',
-    gameId: '3948201948',
-    nickname: '⚡SPARTA・HADES',
-    phone: '+525512340006',
-    rank: 'Miembro',
-    role: 'Rusher',
-    region: 'EEUU',
-    level: 68,
-    joinedAt: '2025-06-14T00:00:00.000Z',
-  },
-  {
-    id: 'sparta-mbr-7',
-    gameId: '4820194829',
-    nickname: '⚡SPARTA・APOLO',
-    phone: '+573102340007',
-    rank: 'Miembro',
-    role: 'Sniper',
-    region: 'EEUU',
-    level: 67,
-    joinedAt: '2025-07-02T00:00:00.000Z',
-  },
-  {
-    id: 'sparta-mbr-8',
-    gameId: '5920194821',
-    nickname: '⚡SPARTA・HERMES',
-    phone: '+56912340008',
-    rank: 'Miembro',
-    role: 'Soporte',
-    region: 'SUD',
-    level: 65,
-    joinedAt: '2025-08-19T00:00:00.000Z',
-  },
-];
+// Registro limpio de miembros oficiales (sin nombres ficticios)
+const SEED_CLAN_MEMBERS: ClanMember[] = [];
 
 export function getClanMembers(): ClanMember[] {
   try {
     const raw = localStorage.getItem(CLAN_MEMBERS_STORAGE_KEY);
     if (!raw) {
-      localStorage.setItem(CLAN_MEMBERS_STORAGE_KEY, JSON.stringify(SEED_CLAN_MEMBERS));
-      return SEED_CLAN_MEMBERS;
+      return [];
     }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : SEED_CLAN_MEMBERS;
+    return Array.isArray(parsed) ? parsed : [];
   } catch (err) {
     console.error('Error reading clan members:', err);
-    return SEED_CLAN_MEMBERS;
+    return [];
   }
 }
 
