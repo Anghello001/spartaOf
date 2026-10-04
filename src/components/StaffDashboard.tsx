@@ -129,7 +129,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onClose, onLogou
   const [manualLevel, setManualLevel] = useState<number>(65);
 
   const refreshList = () => {
-    setApplicants(getApplicants());
+    setApplicants(getApplicants().filter((a) => a.status !== 'aceptado'));
     setClanMembers(getClanMembers());
   };
 
@@ -159,16 +159,25 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onClose, onLogou
         console.warn('Backend accept info:', err);
       }
 
-      // 2. REGLA CRÍTICA: Al aceptar a alguien en el clan su solicitud YA NO SE VA A REFLEJAR
+      // 2. REGLA: Al aceptar a alguien en el clan su solicitud YA NO SE VA A REFLEJAR
       deleteApplicant(id);
       setApplicants((prev) => prev.filter((a) => a.id !== id));
       refreshList();
       return;
     }
 
-    changeRecruitStatusBackend(id, newStatus, leaderPassword).catch(() => {});
+    // EXCEPCIÓN 1V1: Al citar a 1v1 ('en_prueba'), la solicitud PERMANECE VISIBLE Y ACTIVA en Peticiones
+    // para evaluar su puntería y comportamiento antes de aceptarlo o rechazarlo definitivamente.
+    try {
+      await changeRecruitStatusBackend(id, newStatus, leaderPassword);
+    } catch (err) {
+      console.warn('Backend status change info:', err);
+    }
+
     updateApplicantStatus(id, newStatus);
-    refreshList();
+    setApplicants((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, status: newStatus, updatedAt: new Date().toISOString() } : a))
+    );
   };
 
   const handleDelete = async (id: string, nickname?: string) => {
@@ -824,10 +833,22 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onClose, onLogou
                         </button>
 
                         <button
-                          onClick={() => handleStatusChange(app.id, 'en_prueba')}
-                          className="px-3 py-1.5 rounded-lg bg-blue-950/70 border border-blue-500/40 text-blue-300 hover:bg-blue-900/60 text-xs font-tactical font-semibold uppercase transition-colors"
+                          onClick={() => {
+                            handleStatusChange(app.id, 'en_prueba');
+                            handleOpenWhatsApp(
+                              app.phone,
+                              `⚔️ ¡Hola ${app.nickname}! Te contactamos de OF SPARTA (ID ${app.gameId}). Has sido preseleccionado para la prueba 1v1. ¿Qué horario tienes disponible para crear la sala personalizada?`
+                            );
+                          }}
+                          className={`px-3 py-1.5 rounded-lg border text-xs font-tactical font-semibold uppercase flex items-center gap-1.5 transition-colors cursor-pointer ${
+                            app.status === 'en_prueba'
+                              ? 'bg-blue-600/30 border-blue-400 text-blue-300 hover:bg-blue-600/40'
+                              : 'bg-blue-950/70 border-blue-500/40 text-blue-300 hover:bg-blue-900/60'
+                          }`}
+                          title="Citar a sala de prueba 1v1"
                         >
-                          Citar a 1v1
+                          <Swords className="w-3.5 h-3.5" />
+                          <span>{app.status === 'en_prueba' ? '1v1 Citado ✓' : 'Citar a 1v1'}</span>
                         </button>
 
                         <button
